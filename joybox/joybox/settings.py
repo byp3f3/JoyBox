@@ -95,12 +95,12 @@ REST_FRAMEWORK = {
 
 DATABASES = {
     'default': {
-        'ENGINE': config('DB_ENGINE', default='django.db.backends.postgresql'),
-        'NAME':     config('DB_NAME', default='joybox'),
-        'USER':     config('DB_USER', default='postgres'),
-        'PASSWORD': config('DB_PASSWORD', default=''),
-        'HOST':     config('DB_HOST', default='127.0.0.1'),
-        'PORT':     config('DB_PORT', default='5432'),
+        'ENGINE': config('DB_ENGINE'),
+        'NAME':     config('DB_NAME'),
+        'USER':     config('DB_USER'),
+        'PASSWORD': config('DB_PASSWORD'),
+        'HOST':     config('DB_HOST'),
+        'PORT':     config('DB_PORT'),
     }
 }
 
@@ -156,3 +156,8 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 # Custom user model
 AUTH_USER_MODEL = 'core.User'
+
+# Резервное копирование БД
+BACKUP_DIR = BASE_DIR / config('BACKUP_DIR', default='backups')
+BACKUP_MAX_COUNT = config('BACKUP_MAX_COUNT', default=10, cast=int)
+PG_BIN_PATH = config('PG_BIN_PATH', default='')

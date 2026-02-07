@@ -57,3 +57,5 @@ htmlcov/
 .tox/
 nosetests.xml
 coverage.xml
+
+/joybox/backups/

@@ -1,5 +1,5 @@
 from django.urls import path, include
-from . import views  # Добавьте этот импорт
+from . import views
 
 urlpatterns = [
     path('', views.info_view, name='info_view'),
@@ -91,4 +91,12 @@ urlpatterns = [
     path('api/admin/analytics/user-activity/', views.AdminUserActivityView.as_view(), name='admin-user-activity'),
     # Хранимые процедуры
     path('api/admin/price-adjustment/', views.AdminPriceAdjustmentView.as_view(), name='admin-price-adjustment'),
+    # Импорт / Экспорт
+    path('api/admin/data-export/', views.AdminDataExportView.as_view(), name='admin-data-export'),
+    path('api/admin/data-import/', views.AdminDataImportView.as_view(), name='admin-data-import'),
+    # Резервное копирование
+    path('api/admin/backups/', views.AdminBackupListView.as_view(), name='admin-backups'),
+    path('api/admin/backups/download/<str:filename>/', views.AdminBackupDownloadView.as_view(), name='admin-backup-download'),
+    path('api/admin/backups/delete/<str:filename>/', views.AdminBackupDeleteView.as_view(), name='admin-backup-delete'),
+    path('api/admin/backups/restore/', views.AdminBackupRestoreView.as_view(), name='admin-backup-restore'),
 ]

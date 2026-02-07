@@ -709,6 +709,8 @@
             <a href="#" onclick="showAdminSection('reviews')" data-section="reviews">Отзывы <span class="hotkey-hint">Alt+7</span></a>
             <a href="#" class="admin-only-nav" data-section="logs" onclick="showAdminSection('logs')">Журналы <span class="hotkey-hint">Alt+8</span></a>
             <a href="#" class="admin-only-nav" data-section="analytics" onclick="showAdminSection('analytics')">Аналитика <span class="hotkey-hint">Alt+9</span></a>
+            <a href="#" class="admin-only-nav" data-section="data-io" onclick="showAdminSection('data-io')">Импорт/Экспорт</a>
+            <a href="#" class="admin-only-nav" data-section="backups" onclick="showAdminSection('backups')">Бэкапы <span class="hotkey-hint">Alt+0</span></a>
         </div>
         
         <div class="admin-content">
@@ -879,15 +881,69 @@
                             <th>Действие</th>
                             <th>Таблица</th>
                             <th>ID записи</th>
-                            <th>Старые значения</th>
-                            <th>Новые значения</th>
+                            <th>Просмотр</th>
                         </tr>
                     </thead>
                     <tbody id="auditLogsTableBody">
-                        <tr><td colspan="8" style="text-align: center;">Загрузка...</td></tr>
+                        <tr><td colspan="7" style="text-align: center;">Загрузка...</td></tr>
                     </tbody>
                 </table>
                 <button class="btn-admin" onclick="loadAuditLogsData()">Обновить</button>
+            </div>
+            
+            <!-- Раздел Импорт/Экспорт -->
+            <div class="admin-section admin-only-section" id="data-io-section">
+                <h2>Импорт / Экспорт данных</h2>
+                
+                <!-- Экспорт -->
+                <div style="background: var(--bg-light); border-radius: 12px; padding: 20px; margin-bottom: 20px; border: 1px solid var(--border-muted);">
+                    <h3 style="margin-top: 0; font-size: 1.1rem;">Экспорт таблиц</h3>
+                    <p style="color: var(--text-light); margin-bottom: 15px;">Скачайте данные таблиц в формате CSV или SQL (INSERT-скрипт).</p>
+                    <div style="display: flex; gap: 12px; align-items: flex-end; flex-wrap: wrap; margin-bottom: 15px;">
+                        <div class="form-group" style="margin-bottom: 0;">
+                            <label for="exportTable">Таблица</label>
+                            <select id="exportTable" class="form-control" style="min-width: 200px;">
+                                <option value="product">Товары (product)</option>
+                                <option value="category">Категории (category)</option>
+                                <option value="brand">Бренды (brand)</option>
+                                <option value="order">Заказы (order)</option>
+                                <option value="user">Пользователи (user)</option>
+                                <option value="review">Отзывы (review)</option>
+                                <option value="auditlog">Журнал аудита (auditLog)</option>
+                            </select>
+                        </div>
+                        <div class="form-group" style="margin-bottom: 0;">
+                            <label for="exportFormat">Формат</label>
+                            <select id="exportFormat" class="form-control" style="min-width: 140px;">
+                                <option value="csv">CSV</option>
+                                <option value="sql">SQL (INSERT)</option>
+                            </select>
+                        </div>
+                        <button class="btn-admin" onclick="exportTableData()" style="height: 42px;">Экспортировать</button>
+                    </div>
+                </div>
+                
+                <!-- Импорт -->
+                <div style="background: var(--bg-light); border-radius: 12px; padding: 20px; border: 1px solid var(--border-muted);">
+                    <h3 style="margin-top: 0; font-size: 1.1rem;">Импорт данных из CSV</h3>
+                    <p style="color: var(--text-light); margin-bottom: 15px;">Загрузите CSV-файл для импорта данных в выбранную таблицу. Первая строка CSV должна содержать заголовки столбцов.</p>
+                    <div style="display: flex; gap: 12px; align-items: flex-end; flex-wrap: wrap; margin-bottom: 15px;">
+                        <div class="form-group" style="margin-bottom: 0;">
+                            <label for="importTable">Таблица</label>
+                            <select id="importTable" class="form-control" style="min-width: 200px;">
+                                <option value="product">Товары (product)</option>
+                                <option value="category">Категории (category)</option>
+                                <option value="brand">Бренды (brand)</option>
+                            </select>
+                        </div>
+                        <div class="form-group" style="margin-bottom: 0;">
+                            <label for="importFile">CSV-файл</label>
+                            <input type="file" id="importFile" accept=".csv" class="form-control" style="min-width: 250px;">
+                        </div>
+                        <button class="btn-admin" onclick="importCsvData()" style="height: 42px;">Импортировать</button>
+                    </div>
+                    <div id="importResult" style="display: none; padding: 12px; border-radius: 8px; margin-top: 10px;"></div>
+                </div>
             </div>
             
             <!-- Раздел Аналитика -->
@@ -1185,6 +1241,96 @@
                                 <code>-25.5</code> — скидка 25.5%
                             </div>
                         </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Раздел Бэкапы -->
+            <div class="admin-section admin-only-section" id="backups-section">
+                <h2>Резервное копирование и восстановление</h2>
+                
+                <!-- Создание бэкапа -->
+                <div style="background: var(--bg-light); border-radius: 12px; padding: 20px; margin-bottom: 20px; border: 1px solid var(--border-muted);">
+                    <h3 style="margin-top: 0; font-size: 1.1rem;">Создать резервную копию</h3>
+                    <div style="display: flex; gap: 12px; align-items: flex-end; flex-wrap: wrap;">
+                        <div class="form-group" style="margin-bottom: 0;">
+                            <label for="backupFormat">Формат</label>
+                            <select id="backupFormat" class="form-control" style="min-width: 180px;">
+                                <option value="custom">Custom (.backup) — сжатый</option>
+                                <option value="sql">SQL (.sql) — текстовый</option>
+                            </select>
+                        </div>
+                        <div class="form-group" style="margin-bottom: 0;">
+                            <label>
+                                <input type="checkbox" id="backupDataOnly" style="margin-right: 6px;">
+                                Только данные
+                            </label>
+                        </div>
+                        <button class="btn-admin" onclick="createBackup()" id="createBackupBtn" style="height: 42px;">
+                            Создать бэкап
+                        </button>
+                    </div>
+                    <div id="backupCreateResult" style="display: none; padding: 10px; border-radius: 8px; margin-top: 12px;"></div>
+                </div>
+                
+                <!-- Информация о регламенте -->
+                <div style="background: #eff6ff; border: 1px solid #3b82f6; border-radius: 12px; padding: 16px; margin-bottom: 20px;">
+                    <h4 style="margin-top: 0; color: #1d4ed8;">Регламент резервного копирования</h4>
+                    <ul style="margin: 0; padding-left: 20px; color: #1e40af; line-height: 1.8;">
+                        <li><strong>Ежедневно</strong> — автоматический бэкап через скрипт <code>scripts/backup.bat</code> (планировщик задач Windows / cron)</li>
+                        <li><strong>Перед обновлениями</strong> — ручной бэкап через эту панель или команду <code>python manage.py backup_db</code></li>
+                        <li><strong>Хранение</strong> — последние <span id="backupMaxCount">10</span> копий, старые удаляются автоматически</li>
+                        <li><strong>Восстановление</strong> — через панель, скрипт <code>scripts/restore.bat</code> или <code>python manage.py restore_db --latest</code></li>
+                    </ul>
+                </div>
+                
+                <!-- Список бэкапов -->
+                <h3>Существующие резервные копии</h3>
+                <button class="btn-admin" style="margin-bottom: 15px;" onclick="loadBackupsList()">Обновить список</button>
+                <div id="backupsTableContainer">
+                    <table class="admin-table">
+                        <thead>
+                            <tr>
+                                <th>Файл</th>
+                                <th>Формат</th>
+                                <th>Размер</th>
+                                <th>Дата создания</th>
+                                <th>Действия</th>
+                            </tr>
+                        </thead>
+                        <tbody id="backupsTableBody">
+                            <tr><td colspan="5" style="text-align: center;">Загрузка...</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Audit Log Detail Modal -->
+    <div id="auditLogModal" class="modal">
+        <div class="modal-content" style="max-width: 700px;">
+            <div class="modal-header">
+                <h3>Запись журнала аудита</h3>
+                <span class="close" onclick="closeAuditLogModal()">&times;</span>
+            </div>
+            <div id="auditLogDetail" style="padding: 15px;">
+                <div style="display: grid; grid-template-columns: 140px 1fr; gap: 8px 12px; margin-bottom: 20px;">
+                    <strong>ID:</strong> <span id="auditDetailId"></span>
+                    <strong>Дата:</strong> <span id="auditDetailDate"></span>
+                    <strong>Пользователь:</strong> <span id="auditDetailUser"></span>
+                    <strong>Действие:</strong> <span id="auditDetailAction"></span>
+                    <strong>Таблица:</strong> <span id="auditDetailTable"></span>
+                    <strong>ID записи:</strong> <span id="auditDetailRecordId"></span>
+                </div>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+                    <div>
+                        <h4 style="margin: 0 0 8px 0; color: #dc2626;">Старые значения</h4>
+                        <pre id="auditDetailOld" style="background: var(--bg-light); border: 1px solid var(--border-muted); border-radius: 8px; padding: 12px; white-space: pre-wrap; word-break: break-word; max-height: 400px; overflow-y: auto; font-size: 0.85rem;">—</pre>
+                    </div>
+                    <div>
+                        <h4 style="margin: 0 0 8px 0; color: #10b981;">Новые значения</h4>
+                        <pre id="auditDetailNew" style="background: var(--bg-light); border: 1px solid var(--border-muted); border-radius: 8px; padding: 12px; white-space: pre-wrap; word-break: break-word; max-height: 400px; overflow-y: auto; font-size: 0.85rem;">—</pre>
                     </div>
                 </div>
             </div>
@@ -1836,42 +1982,70 @@
     }
     
     // --- Мониторинг системных журналов (auditLog) ---
+    let auditLogsCache = [];
+    
     function loadAuditLogsData() {
         fetch('/api/admin/audit-logs/', {
             headers: { 'Authorization': `Token ${authToken}` }
         })
         .then(r => r.json())
         .then(data => {
+            auditLogsCache = data || [];
             const tbody = document.getElementById('auditLogsTableBody');
             if (!data || data.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="8" style="text-align: center;">Нет записей</td></tr>';
+                tbody.innerHTML = '<tr><td colspan="7" style="text-align: center;">Нет записей</td></tr>';
                 return;
             }
-            const formatJson = (v) => {
-                if (v == null) return '—';
-                try { return typeof v === 'object' ? JSON.stringify(v) : String(v); } catch (e) { return String(v); }
-            };
-            const trunc = (s, len) => {
-                if (s == null) return '—';
-                const str = typeof s === 'object' ? JSON.stringify(s) : String(s);
-                return str.length > (len || 80) ? str.slice(0, len) + '…' : str;
-            };
-            tbody.innerHTML = data.map(log => `
+            const actionLabels = { 'CREATE': 'Создание', 'UPDATE': 'Изменение', 'DELETE': 'Удаление' };
+            const actionColors = { 'CREATE': '#10b981', 'UPDATE': '#f59e0b', 'DELETE': '#ef4444' };
+            tbody.innerHTML = data.map((log, idx) => {
+                const action = log.action || '—';
+                const color = actionColors[action] || '#6b7280';
+                const label = actionLabels[action] || action;
+                return `
                 <tr>
                     <td>${log.auditLogId}</td>
                     <td>${log.createdAt ? new Date(log.createdAt).toLocaleString('ru-RU') : '—'}</td>
                     <td>${escapeHtml(log.userDisplay || log.userId || '—')}</td>
-                    <td>${escapeHtml(log.action || '—')}</td>
+                    <td><span style="color: ${color}; font-weight: 600;">${escapeHtml(label)}</span></td>
                     <td>${escapeHtml(log.tableName || '—')}</td>
                     <td>${log.recordId != null ? log.recordId : '—'}</td>
-                    <td style="max-width: 180px; overflow: hidden; text-overflow: ellipsis;" title="${escapeHtml(trunc(log.oldValues, 200))}">${escapeHtml(trunc(log.oldValues, 50))}</td>
-                    <td style="max-width: 180px; overflow: hidden; text-overflow: ellipsis;" title="${escapeHtml(trunc(log.newValues, 200))}">${escapeHtml(trunc(log.newValues, 50))}</td>
+                    <td><button class="btn-admin" style="padding: 4px 12px; font-size: 0.85rem;" onclick="openAuditLogModal(${idx})">Подробнее</button></td>
                 </tr>
-            `).join('');
+                `;
+            }).join('');
         })
         .catch(() => {
-            document.getElementById('auditLogsTableBody').innerHTML = '<tr><td colspan="8" style="text-align: center;">Ошибка загрузки</td></tr>';
+            document.getElementById('auditLogsTableBody').innerHTML = '<tr><td colspan="7" style="text-align: center;">Ошибка загрузки</td></tr>';
         });
+    }
+    
+    function formatJsonPretty(val) {
+        if (val == null) return '—';
+        try {
+            const obj = typeof val === 'string' ? JSON.parse(val) : val;
+            return JSON.stringify(obj, null, 2);
+        } catch (e) {
+            return String(val);
+        }
+    }
+    
+    function openAuditLogModal(idx) {
+        const log = auditLogsCache[idx];
+        if (!log) return;
+        document.getElementById('auditDetailId').textContent = log.auditLogId;
+        document.getElementById('auditDetailDate').textContent = log.createdAt ? new Date(log.createdAt).toLocaleString('ru-RU') : '—';
+        document.getElementById('auditDetailUser').textContent = log.userDisplay || log.userId || '—';
+        document.getElementById('auditDetailAction').textContent = log.action || '—';
+        document.getElementById('auditDetailTable').textContent = log.tableName || '—';
+        document.getElementById('auditDetailRecordId').textContent = log.recordId != null ? log.recordId : '—';
+        document.getElementById('auditDetailOld').textContent = formatJsonPretty(log.oldValues);
+        document.getElementById('auditDetailNew').textContent = formatJsonPretty(log.newValues);
+        document.getElementById('auditLogModal').style.display = 'block';
+    }
+    
+    function closeAuditLogModal() {
+        document.getElementById('auditLogModal').style.display = 'none';
     }
     
     // Switch between admin sections
@@ -2785,7 +2959,139 @@
         if (event.target == categoryModal) closeCategoryModal();
         if (event.target == brandModal) closeBrandModal();
         if (event.target == orderModal) closeOrderModal();
+        const auditLogModal = document.getElementById('auditLogModal');
+        if (event.target == auditLogModal) closeAuditLogModal();
     };
+    
+    // =============================================
+    // РЕЗЕРВНОЕ КОПИРОВАНИЕ
+    // =============================================
+    
+    function loadBackupsList() {
+        fetch('/api/admin/backups/', {
+            headers: { 'Authorization': `Token ${authToken}` }
+        })
+        .then(r => { if (!r.ok) throw new Error(); return r.json(); })
+        .then(data => {
+            const maxEl = document.getElementById('backupMaxCount');
+            if (maxEl) maxEl.textContent = data.max_count || 10;
+            
+            const tbody = document.getElementById('backupsTableBody');
+            if (!data.backups || data.backups.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="5" style="text-align: center;">Нет резервных копий</td></tr>';
+                return;
+            }
+            tbody.innerHTML = data.backups.map(b => {
+                const date = new Date(b.createdAt).toLocaleString('ru-RU');
+                const fmtLabel = b.format === 'custom' ? 'Custom' : 'SQL';
+                return `
+                    <tr>
+                        <td><code>${escapeHtml(b.filename)}</code></td>
+                        <td>${fmtLabel}</td>
+                        <td>${escapeHtml(b.sizeHuman)}</td>
+                        <td>${date}</td>
+                        <td>
+                            <button class="btn-admin" style="padding: 4px 10px; font-size: 0.85rem; margin-right: 4px;" onclick="downloadBackup('${escapeHtml(b.filename)}')">Скачать</button>
+                            <button class="btn-admin" style="padding: 4px 10px; font-size: 0.85rem; margin-right: 4px; background: #f59e0b;" onclick="restoreBackup('${escapeHtml(b.filename)}')">Восстановить</button>
+                            <button class="btn-admin" style="padding: 4px 10px; font-size: 0.85rem; background: #ef4444;" onclick="deleteBackup('${escapeHtml(b.filename)}')">Удалить</button>
+                        </td>
+                    </tr>
+                `;
+            }).join('');
+        })
+        .catch(() => {
+            document.getElementById('backupsTableBody').innerHTML = '<tr><td colspan="5" style="text-align: center; color: red;">Ошибка загрузки</td></tr>';
+        });
+    }
+    
+    function createBackup() {
+        const btn = document.getElementById('createBackupBtn');
+        const resultDiv = document.getElementById('backupCreateResult');
+        const fmt = document.getElementById('backupFormat').value;
+        const dataOnly = document.getElementById('backupDataOnly').checked;
+        
+        btn.disabled = true;
+        btn.textContent = 'Создание...';
+        resultDiv.style.display = 'none';
+        
+        fetch('/api/admin/backups/', {
+            method: 'POST',
+            headers: {
+                'Authorization': `Token ${authToken}`,
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ format: fmt, dataOnly: dataOnly })
+        })
+        .then(r => r.json().then(body => ({ status: r.status, body })))
+        .then(({ status, body }) => {
+            resultDiv.style.display = 'block';
+            if (status === 201) {
+                resultDiv.style.background = '#d1fae5';
+                resultDiv.style.border = '1px solid #10b981';
+                resultDiv.innerHTML = `<strong>Успешно!</strong> ${escapeHtml(body.detail)}`;
+                loadBackupsList();
+            } else {
+                resultDiv.style.background = '#fee2e2';
+                resultDiv.style.border = '1px solid #ef4444';
+                resultDiv.innerHTML = `<strong>Ошибка:</strong> ${escapeHtml(body.detail)}`;
+            }
+        })
+        .catch(() => {
+            resultDiv.style.display = 'block';
+            resultDiv.style.background = '#fee2e2';
+            resultDiv.style.border = '1px solid #ef4444';
+            resultDiv.innerHTML = '<strong>Ошибка:</strong> Не удалось создать бэкап.';
+        })
+        .finally(() => {
+            btn.disabled = false;
+            btn.textContent = 'Создать бэкап';
+        });
+    }
+    
+    function downloadBackup(filename) {
+        window.open(`/api/admin/backups/download/${filename}/?token=${authToken}`, '_blank');
+    }
+    
+    function restoreBackup(filename) {
+        if (!confirm(`ВНИМАНИЕ! Все текущие данные в базе будут заменены данными из бэкапа «${filename}».\n\nПродолжить?`)) return;
+        if (!confirm('Вы уверены? Это действие нельзя отменить.')) return;
+        
+        fetch('/api/admin/backups/restore/', {
+            method: 'POST',
+            headers: {
+                'Authorization': `Token ${authToken}`,
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ filename: filename })
+        })
+        .then(r => r.json().then(body => ({ status: r.status, body })))
+        .then(({ status, body }) => {
+            if (status === 200) {
+                alert('База данных восстановлена! Страница будет перезагружена.');
+                window.location.reload();
+            } else {
+                alert('Ошибка: ' + (body.detail || 'Не удалось восстановить.'));
+            }
+        })
+        .catch(() => alert('Ошибка сети при восстановлении.'));
+    }
+    
+    function deleteBackup(filename) {
+        if (!confirm(`Удалить бэкап «${filename}»?`)) return;
+        
+        fetch(`/api/admin/backups/delete/${filename}/`, {
+            method: 'DELETE',
+            headers: { 'Authorization': `Token ${authToken}` }
+        })
+        .then(r => {
+            if (r.ok) {
+                loadBackupsList();
+            } else {
+                r.json().then(body => alert('Ошибка: ' + (body.detail || 'Не удалось удалить.')));
+            }
+        })
+        .catch(() => alert('Ошибка сети.'));
+    }
     
     // =============================================
     // СИСТЕМА ГОРЯЧИХ КЛАВИШ
@@ -2804,7 +3110,8 @@
         '6': 'orders',
         '7': 'reviews',
         '8': 'logs',
-        '9': 'analytics'
+        '9': 'analytics',
+        '0': 'backups'
     };
     
     // Функции обновления данных для каждого раздела
@@ -2817,7 +3124,9 @@
         'orders': loadOrdersData,
         'reviews': loadReviewsData,
         'logs': loadAuditLogsData,
-        'analytics': loadAnalyticsData
+        'analytics': loadAnalyticsData,
+        'data-io': function(){},
+        'backups': loadBackupsList
     };
     
     // Функции создания нового элемента для каждого раздела
@@ -3652,5 +3961,116 @@
     document.addEventListener('DOMContentLoaded', function() {
         initAnalyticsDates();
     });
+    
+    // =============================================
+    // ИМПОРТ / ЭКСПОРТ ДАННЫХ
+    // =============================================
+    
+    function exportTableData() {
+        const table = document.getElementById('exportTable').value;
+        const format = document.getElementById('exportFormat').value;
+        const url = `/api/admin/data-export/?table=${table}&file_format=${format}`;
+        
+        console.log('Запрос на:', url);
+        console.log('Параметры:', { table, format });
+        console.log('Токен:', authToken ? 'Присутствует' : 'Отсутствует');
+        
+        fetch(url, {
+            method: 'GET',
+            headers: { 
+                'Authorization': `Token ${authToken}`,
+                'Accept': format === 'csv' ? 'text/csv' : 'application/sql'
+            }
+        })
+        .then(response => {
+            console.log('Статус ответа:', response.status);
+            console.log('URL ответа:', response.url);
+            
+            if (response.status === 404) {
+                throw new Error(`Ресурс не найден (404). Проверьте путь: ${url}`);
+            }
+            
+            if (!response.ok) {
+                return response.text().then(text => {
+                    console.error('Текст ошибки:', text);
+                    try {
+                        const data = JSON.parse(text);
+                        throw new Error(data.detail || data.message || `Ошибка ${response.status}`);
+                    } catch {
+                        throw new Error(`Ошибка ${response.status}: ${text}`);
+                    }
+                });
+            }
+            
+            const contentDisposition = response.headers.get('Content-Disposition') || '';
+            const filenameMatch = contentDisposition.match(/filename="?([^";\n]+)"?/);
+            const filename = filenameMatch ? filenameMatch[1] : `${table}_export.${format === 'sql' ? 'sql' : 'csv'}`;
+            
+            return response.blob().then(blob => ({ blob, filename }));
+        })
+        .then(({ blob, filename }) => {
+            console.log('Файл для скачивания:', filename, 'Размер:', blob.size);
+            
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = filename;
+            document.body.appendChild(a);
+            a.click();
+            window.URL.revokeObjectURL(url);
+            a.remove();
+            alert('Экспорт успешно завершен!');
+        })
+        .catch(err => {
+            console.error('Полная ошибка:', err);
+            alert(`Ошибка при экспорте: ${err.message}`);
+        });
+    }
+    
+    function importCsvData() {
+        const table = document.getElementById('importTable').value;
+        const fileInput = document.getElementById('importFile');
+        const resultDiv = document.getElementById('importResult');
+        
+        if (!fileInput.files || !fileInput.files[0]) {
+            alert('Выберите CSV-файл для импорта.');
+            return;
+        }
+        
+        const formData = new FormData();
+        formData.append('file', fileInput.files[0]);
+        formData.append('table', table);
+        
+        resultDiv.style.display = 'none';
+        
+        fetch('/api/admin/data-import/', {
+            method: 'POST',
+            headers: { 'Authorization': `Token ${authToken}` },
+            body: formData
+        })
+        .then(r => r.json().then(body => ({ ok: r.ok, body })))
+        .then(({ ok, body }) => {
+            resultDiv.style.display = 'block';
+            if (ok) {
+                resultDiv.style.background = '#d1fae5';
+                resultDiv.style.color = '#065f46';
+                resultDiv.style.border = '1px solid #10b981';
+                resultDiv.innerHTML = `<strong>Импорт завершён.</strong> ${escapeHtml(body.detail || '')}`;
+                fileInput.value = '';
+            } else {
+                resultDiv.style.background = '#fee2e2';
+                resultDiv.style.color = '#991b1b';
+                resultDiv.style.border = '1px solid #ef4444';
+                resultDiv.innerHTML = `<strong>Ошибка:</strong> ${escapeHtml(body.detail || 'Неизвестная ошибка')}`;
+            }
+        })
+        .catch(() => {
+            resultDiv.style.display = 'block';
+            resultDiv.style.background = '#fee2e2';
+            resultDiv.style.color = '#991b1b';
+            resultDiv.style.border = '1px solid #ef4444';
+            resultDiv.innerHTML = '<strong>Ошибка:</strong> Не удалось выполнить импорт.';
+        });
+    }
 </script>
 {% endblock %}

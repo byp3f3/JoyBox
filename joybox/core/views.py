@@ -15,6 +15,7 @@ from django.http import HttpResponse
 from datetime import datetime, timedelta
 import csv
 import io
+import json as _json
 try:
     from openpyxl import Workbook
     from openpyxl.styles import Font, PatternFill, Border, Side
@@ -28,8 +29,11 @@ except Exception as e:
 from django.shortcuts import render, redirect
 from django.utils import timezone
 from django.conf import settings
+from django.http import FileResponse
 from decimal import Decimal
+from pathlib import Path
 import logging
+import subprocess
 from .models import Product, Category, Brand, ProductImage, ProductAttribute, Review, Wishlist, ParentChild, User, Order, OrderItem, OrderStatus, Address, Role, AuditLog, Cart
 
 logger = logging.getLogger(__name__)
@@ -2103,3 +2107,424 @@ class AdminAnalyticsExportView(APIView):
         except ImportError:
             # Если openpyxl не установлен, возвращаем CSV
             return self._create_csv_response(rows, filename)
+
+
+# =============================================
+# ИМПОРТ / ЭКСПОРТ ДАННЫХ
+# =============================================
+
+EXPORT_TABLE_CONFIG = {
+    'product': {
+        'model': Product,
+        'fields': ['productId', 'productName', 'productDescription', 'categoryId_id', 'brandId_id', 'price', 'ageRating', 'quantity', 'weightKg', 'dimensions'],
+        'headers': ['productId', 'productName', 'productDescription', 'categoryId', 'brandId', 'price', 'ageRating', 'quantity', 'weightKg', 'dimensions'],
+        'db_table': 'product',
+    },
+    'category': {
+        'model': Category,
+        'fields': ['categoryId', 'categoryName', 'categoryDescription'],
+        'headers': ['categoryId', 'categoryName', 'categoryDescription'],
+        'db_table': 'category',
+    },
+    'brand': {
+        'model': Brand,
+        'fields': ['brandId', 'brandName', 'brandDescription', 'brandCountry'],
+        'headers': ['brandId', 'brandName', 'brandDescription', 'brandCountry'],
+        'db_table': 'brand',
+    },
+    'order': {
+        'model': Order,
+        'fields': ['orderId', 'userId_id', 'orderStatusId_id', 'total', 'addressId_id', 'deliveryType', 'paymentType', 'paymentStatus', 'note', 'createdAt'],
+        'headers': ['orderId', 'userId', 'orderStatusId', 'total', 'addressId', 'deliveryType', 'paymentType', 'paymentStatus', 'note', 'createdAt'],
+        'db_table': '"order"',
+    },
+    'user': {
+        'model': User,
+        'fields': ['userId', 'lastName', 'firstName', 'middleName', 'email', 'roleId_id', 'phone', 'birthDate', 'createdAt'],
+        'headers': ['userId', 'lastName', 'firstName', 'middleName', 'email', 'roleId', 'phone', 'birthDate', 'createdAt'],
+        'db_table': '"user"',
+    },
+    'review': {
+        'model': Review,
+        'fields': ['reviewId', 'productId_id', 'userId_id', 'rating', 'reviewText', 'createdAt', 'updatedAt'],
+        'headers': ['reviewId', 'productId', 'userId', 'rating', 'reviewText', 'createdAt', 'updatedAt'],
+        'db_table': 'review',
+    },
+    'auditlog': {
+        'model': AuditLog,
+        'fields': ['auditLogId', 'userId_id', 'action', 'tableName', 'recordId', 'oldValues', 'newValues', 'createdAt'],
+        'headers': ['auditLogId', 'userId', 'action', 'tableName', 'recordId', 'oldValues', 'newValues', 'createdAt'],
+        'db_table': '"auditLog"',
+    },
+}
+
+IMPORT_TABLE_CONFIG = {
+    'product': {
+        'model': Product,
+        'fields_map': {
+            'productName': 'productName',
+            'productDescription': 'productDescription',
+            'categoryId': 'categoryId_id',
+            'brandId': 'brandId_id',
+            'price': 'price',
+            'ageRating': 'ageRating',
+            'quantity': 'quantity',
+            'weightKg': 'weightKg',
+            'dimensions': 'dimensions',
+        },
+        'required': ['productName', 'categoryId', 'brandId', 'price'],
+    },
+    'category': {
+        'model': Category,
+        'fields_map': {
+            'categoryName': 'categoryName',
+            'categoryDescription': 'categoryDescription',
+        },
+        'required': ['categoryName'],
+    },
+    'brand': {
+        'model': Brand,
+        'fields_map': {
+            'brandName': 'brandName',
+            'brandDescription': 'brandDescription',
+            'brandCountry': 'brandCountry',
+        },
+        'required': ['brandName'],
+    },
+}
+
+
+class AdminDataExportView(APIView):
+    """Экспорт данных таблиц в CSV или SQL формат."""
+    permission_classes = [IsAuthenticated]
+
+    def perform_content_negotiation(self, request, force=False):
+        """Возвращает файл (HttpResponse), а не DRF Response — пропускаем строгую проверку."""
+        from rest_framework.renderers import JSONRenderer
+        return (JSONRenderer(), JSONRenderer.media_type)
+
+    def get(self, request):
+        user = request.user
+        if not hasattr(user, 'roleId') or user.roleId.roleName != 'Администратор':
+            return Response({'detail': 'Доступ запрещён.'}, status=403)
+
+        table = request.query_params.get('table', '')
+        fmt = request.query_params.get('file_format', 'csv')
+
+        if table not in EXPORT_TABLE_CONFIG:
+            return Response({'detail': f'Неизвестная таблица: {table}'}, status=400)
+
+        config = EXPORT_TABLE_CONFIG[table]
+        model = config['model']
+        fields = config['fields']
+        headers = config['headers']
+        db_table = config['db_table']
+
+        queryset = model.objects.all().order_by(model._meta.pk.name)
+        rows = queryset.values_list(*fields)
+
+        if fmt == 'sql':
+            output = io.StringIO()
+            output.write(f'-- Экспорт таблицы {db_table}\n')
+            output.write(f'-- Дата: {timezone.now().strftime("%Y-%m-%d %H:%M:%S")}\n')
+            output.write(f'-- Записей: {len(rows)}\n\n')
+
+            for row in rows:
+                values = []
+                for val in row:
+                    if val is None:
+                        values.append('NULL')
+                    elif isinstance(val, (int, float, Decimal)):
+                        values.append(str(val))
+                    elif isinstance(val, (dict, list)):
+                        s = _json.dumps(val, ensure_ascii=False).replace("'", "''")
+                        values.append(f"'{s}'")
+                    elif isinstance(val, datetime):
+                        values.append(f"'{val.strftime('%Y-%m-%d %H:%M:%S')}'")
+                    elif hasattr(val, 'isoformat'):
+                        values.append(f"'{val.isoformat()}'")
+                    else:
+                        s = str(val).replace("'", "''")
+                        values.append(f"'{s}'")
+
+                cols = ', '.join(f'"{h}"' for h in headers)
+                vals = ', '.join(values)
+                output.write(f'INSERT INTO {db_table} ({cols}) VALUES ({vals});\n')
+
+            response = HttpResponse(output.getvalue(), content_type='text/sql; charset=utf-8')
+            response['Content-Disposition'] = f'attachment; filename="{table}_export.sql"'
+            return response
+
+        else:
+            output = io.StringIO()
+            writer = csv.writer(output, quoting=csv.QUOTE_ALL)
+            writer.writerow(headers)
+            for row in rows:
+                processed = []
+                for val in row:
+                    if val is None:
+                        processed.append('')
+                    elif isinstance(val, (dict, list)):
+                        processed.append(_json.dumps(val, ensure_ascii=False))
+                    else:
+                        processed.append(str(val))
+                writer.writerow(processed)
+
+            response = HttpResponse(output.getvalue(), content_type='text/csv; charset=utf-8-sig')
+            response['Content-Disposition'] = f'attachment; filename="{table}_export.csv"'
+            return response
+
+
+class AdminDataImportView(APIView):
+    """Импорт данных из CSV."""
+    permission_classes = [IsAuthenticated]
+    parser_classes = [MultiPartParser, FormParser]
+
+    def post(self, request):
+        user = request.user
+        if not hasattr(user, 'roleId') or user.roleId.roleName != 'Администратор':
+            return Response({'detail': 'Доступ запрещён.'}, status=403)
+
+        table = request.data.get('table', '')
+        csv_file = request.FILES.get('file')
+
+        if not csv_file:
+            return Response({'detail': 'CSV-файл не предоставлен.'}, status=400)
+
+        if table not in IMPORT_TABLE_CONFIG:
+            return Response({'detail': f'Импорт в таблицу «{table}» не поддерживается.'}, status=400)
+
+        config = IMPORT_TABLE_CONFIG[table]
+        model = config['model']
+        fields_map = config['fields_map']
+        required = config['required']
+
+        try:
+            content = csv_file.read().decode('utf-8-sig')
+            reader = csv.DictReader(io.StringIO(content))
+            csv_headers = reader.fieldnames or []
+
+            missing_required = [f for f in required if f not in csv_headers]
+            if missing_required:
+                return Response({
+                    'detail': f'В CSV отсутствуют обязательные столбцы: {", ".join(missing_required)}'
+                }, status=400)
+
+            created_count = 0
+            errors = []
+
+            for i, row in enumerate(reader, start=2):
+                try:
+                    obj_data = {}
+                    for csv_col, model_field in fields_map.items():
+                        if csv_col in row and row[csv_col].strip() != '':
+                            obj_data[model_field] = row[csv_col].strip()
+
+                    missing_in_row = [f for f in required if f not in row or row[f].strip() == '']
+                    if missing_in_row:
+                        errors.append(f'Строка {i}: пустые обязательные поля: {", ".join(missing_in_row)}')
+                        continue
+
+                    model.objects.create(**obj_data)
+                    created_count += 1
+                except Exception as e:
+                    errors.append(f'Строка {i}: {str(e)}')
+
+            detail = f'Создано записей: {created_count}.'
+            if errors:
+                detail += f' Ошибок: {len(errors)}. Первые ошибки: ' + '; '.join(errors[:5])
+
+            return Response({'detail': detail}, status=200 if created_count > 0 else 400)
+
+        except UnicodeDecodeError:
+            return Response({'detail': 'Невозможно прочитать файл. Убедитесь, что он в формате CSV (UTF-8).'}, status=400)
+        except Exception as e:
+            return Response({'detail': f'Ошибка импорта: {str(e)}'}, status=500)
+
+
+# =============================================
+# РЕЗЕРВНОЕ КОПИРОВАНИЕ И ВОССТАНОВЛЕНИЕ
+# =============================================
+
+class AdminBackupListView(APIView):
+    """Список резервных копий и создание новой."""
+    permission_classes = [IsAuthenticated]
+
+    def _check_admin(self, user):
+        if user.roleId.roleName != 'Администратор':
+            return Response({'detail': 'Доступно только администратору.'}, status=status.HTTP_403_FORBIDDEN)
+        return None
+
+    def get(self, request):
+        """Список существующих бэкапов."""
+        denied = self._check_admin(request.user)
+        if denied:
+            return denied
+
+        backup_dir = Path(settings.BACKUP_DIR)
+        if not backup_dir.exists():
+            return Response({'backups': [], 'backup_dir': str(backup_dir)})
+
+        backups = []
+        for f in sorted(backup_dir.iterdir(), key=lambda x: x.stat().st_mtime, reverse=True):
+            if f.is_file() and f.suffix in ('.backup', '.sql'):
+                stat = f.stat()
+                backups.append({
+                    'filename': f.name,
+                    'size': stat.st_size,
+                    'sizeHuman': self._human_size(stat.st_size),
+                    'createdAt': datetime.fromtimestamp(stat.st_mtime).isoformat(),
+                    'format': 'custom' if f.suffix == '.backup' else 'sql',
+                })
+
+        return Response({
+            'backups': backups,
+            'backup_dir': str(backup_dir),
+            'max_count': getattr(settings, 'BACKUP_MAX_COUNT', 10),
+        })
+
+    def post(self, request):
+        """Создание новой резервной копии."""
+        denied = self._check_admin(request.user)
+        if denied:
+            return denied
+
+        fmt = request.data.get('format', 'custom')
+        data_only = request.data.get('dataOnly', False)
+
+        if fmt not in ('custom', 'sql'):
+            return Response({'detail': 'Формат должен быть custom или sql.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            from django.core.management import call_command
+            from io import StringIO
+            out = StringIO()
+            call_command('backup_db', format=fmt, data_only=data_only, stdout=out)
+            output = out.getvalue()
+
+            # Парсим путь к файлу из вывода команды
+            log_audit(request.user, 'CREATE', 'backup', 0,
+                      old_values=None,
+                      new_values={'format': fmt, 'data_only': data_only, 'output': output.strip()})
+
+            return Response({
+                'detail': 'Резервная копия успешно создана.',
+                'output': output.strip(),
+            }, status=status.HTTP_201_CREATED)
+
+        except Exception as e:
+            logger.exception("Ошибка создания бэкапа")
+            return Response({
+                'detail': f'Ошибка создания резервной копии: {str(e)}'
+            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+    @staticmethod
+    def _human_size(nbytes):
+        for unit in ('Б', 'КБ', 'МБ', 'ГБ'):
+            if abs(nbytes) < 1024:
+                return f'{nbytes:.1f} {unit}'
+            nbytes /= 1024
+        return f'{nbytes:.1f} ТБ'
+
+
+class AdminBackupDownloadView(APIView):
+    """Скачивание файла бэкапа (поддерживает ?token= для прямой ссылки)."""
+    permission_classes = [AllowAny]  # Проверяем токен вручную
+
+    def get(self, request, filename):
+        # Поддержка токена через query-параметр (для скачивания в новой вкладке)
+        user = request.user
+        if not user or not user.is_authenticated:
+            token_key = request.query_params.get('token')
+            if token_key:
+                try:
+                    token = Token.objects.get(key=token_key)
+                    user = token.user
+                except Token.DoesNotExist:
+                    return Response({'detail': 'Недействительный токен.'}, status=status.HTTP_401_UNAUTHORIZED)
+            else:
+                return Response({'detail': 'Необходима авторизация.'}, status=status.HTTP_401_UNAUTHORIZED)
+
+        if user.roleId.roleName != 'Администратор':
+            return Response({'detail': 'Доступно только администратору.'}, status=status.HTTP_403_FORBIDDEN)
+
+        backup_dir = Path(settings.BACKUP_DIR)
+        filepath = backup_dir / filename
+
+        # Защита от path traversal
+        if not filepath.resolve().parent == backup_dir.resolve():
+            return Response({'detail': 'Недопустимое имя файла.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        if not filepath.exists():
+            return Response({'detail': 'Файл не найден.'}, status=status.HTTP_404_NOT_FOUND)
+
+        return FileResponse(
+            open(filepath, 'rb'),
+            as_attachment=True,
+            filename=filename,
+        )
+
+
+class AdminBackupDeleteView(APIView):
+    """Удаление файла бэкапа."""
+    permission_classes = [IsAuthenticated]
+
+    def delete(self, request, filename):
+        if request.user.roleId.roleName != 'Администратор':
+            return Response({'detail': 'Доступно только администратору.'}, status=status.HTTP_403_FORBIDDEN)
+
+        backup_dir = Path(settings.BACKUP_DIR)
+        filepath = backup_dir / filename
+
+        if not filepath.resolve().parent == backup_dir.resolve():
+            return Response({'detail': 'Недопустимое имя файла.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        if not filepath.exists():
+            return Response({'detail': 'Файл не найден.'}, status=status.HTTP_404_NOT_FOUND)
+
+        filepath.unlink()
+        log_audit(request.user, 'DELETE', 'backup', 0,
+                  old_values={'filename': filename}, new_values=None)
+        return Response({'detail': f'Бэкап «{filename}» удалён.'}, status=status.HTTP_200_OK)
+
+
+class AdminBackupRestoreView(APIView):
+    """Восстановление БД из бэкапа."""
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request):
+        if request.user.roleId.roleName != 'Администратор':
+            return Response({'detail': 'Доступно только администратору.'}, status=status.HTTP_403_FORBIDDEN)
+
+        filename = request.data.get('filename')
+        if not filename:
+            return Response({'detail': 'Укажите имя файла (filename).'}, status=status.HTTP_400_BAD_REQUEST)
+
+        backup_dir = Path(settings.BACKUP_DIR)
+        filepath = backup_dir / filename
+
+        if not filepath.resolve().parent == backup_dir.resolve():
+            return Response({'detail': 'Недопустимое имя файла.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        if not filepath.exists():
+            return Response({'detail': 'Файл не найден.'}, status=status.HTTP_404_NOT_FOUND)
+
+        try:
+            from django.core.management import call_command
+            from io import StringIO
+            out = StringIO()
+            err = StringIO()
+            call_command('restore_db', str(filepath), no_confirm=True, stdout=out, stderr=err)
+
+            log_audit(request.user, 'UPDATE', 'backup_restore', 0,
+                      old_values=None,
+                      new_values={'filename': filename})
+
+            return Response({
+                'detail': f'База данных восстановлена из «{filename}».',
+            })
+        except Exception as e:
+            logger.exception("Ошибка восстановления БД")
+            return Response({
+                'detail': f'Ошибка восстановления: {str(e)}'
+            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
