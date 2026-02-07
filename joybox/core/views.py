@@ -136,8 +136,13 @@ class UserRegistrationView(generics.CreateAPIView):
                 'token': token.key,
                 'user': UserSerializer(user).data
             }, status=status.HTTP_201_CREATED)
+        except DRFValidationError:
+            raise  # Обрабатывается централизованным обработчиком
+        except IntegrityError:
+            raise  # Обрабатывается централизованным обработчиком
         except Exception as e:
-            return Response({'detail': str(e)}, status=status.HTTP_400_BAD_REQUEST)
+            logger.exception("Ошибка регистрации")
+            return Response({'detail': 'Ошибка при регистрации. Проверьте введённые данные.'}, status=status.HTTP_400_BAD_REQUEST)
 
 class LoginView(ObtainAuthToken):
     serializer_class = LoginSerializer
@@ -154,29 +159,21 @@ class LoginView(ObtainAuthToken):
                 'token': token.key,
                 'user': UserSerializer(user).data
             })
-        except DRFValidationError as e:
-            msg = e.detail
-            if isinstance(msg, dict):
-                for key in ('non_field_errors', 'email', 'password'):
-                    if key in msg and msg[key]:
-                        val = msg[key]
-                        msg = val[0] if isinstance(val, (list, tuple)) else val
-                        break
-                else:
-                    val = list(msg.values())[0] if msg else []
-                    msg = val[0] if isinstance(val, (list, tuple)) and val else str(e)
-            elif isinstance(msg, (list, tuple)) and msg:
-                msg = msg[0]
-            return Response({'detail': str(msg)}, status=status.HTTP_400_BAD_REQUEST)
+        except DRFValidationError:
+            raise  # Обрабатывается централизованным обработчиком
         except Exception as e:
-            return Response({'detail': str(e)}, status=status.HTTP_400_BAD_REQUEST)
+            logger.exception("Ошибка авторизации")
+            return Response({'detail': 'Ошибка при входе. Проверьте email и пароль.'}, status=status.HTTP_400_BAD_REQUEST)
 
     def dispatch(self, request, *args, **kwargs):
         # Ensure we always return JSON, even for errors
         try:
             return super().dispatch(request, *args, **kwargs)
+        except DRFValidationError:
+            raise
         except Exception as e:
-            return Response({'detail': str(e)}, status=400)
+            logger.exception("Ошибка авторизации (dispatch)")
+            return Response({'detail': 'Ошибка при входе. Попробуйте позже.'}, status=400)
 
 class UserProfileView(generics.RetrieveUpdateAPIView):
     serializer_class = UserProfileSerializer
@@ -512,7 +509,7 @@ class CreateOrderView(generics.GenericAPIView):
         except IntegrityError as e:
             logger.exception("CreateOrder IntegrityError")
             return Response(
-                {'detail': 'Ошибка целостности данных (адрес или заказ). ' + (str(e) if getattr(settings, 'DEBUG', False) else '')},
+                {'detail': 'Ошибка целостности данных при оформлении заказа. Проверьте адрес и повторите попытку.'},
                 status=status.HTTP_400_BAD_REQUEST
             )
         except Exception as e:
@@ -844,7 +841,7 @@ class AdminDashboardView(generics.GenericAPIView):
                 'total_revenue': float(total_revenue)
             })
         else:
-            return Response({'error': 'Access denied'}, status=403)
+            return Response({'detail': 'Доступ запрещён.'}, status=403)
 
 class AdminProductsView(generics.ListAPIView):
     serializer_class = ProductListSerializer
@@ -866,14 +863,14 @@ class AdminProductCreateView(generics.CreateAPIView):
     def perform_create(self, serializer):
         user = self.request.user
         if user.roleId.roleName not in ['Администратор', 'Менеджер']:
-            raise PermissionDenied("Access denied")
+            raise PermissionDenied("Доступ запрещён.")
         set_audit_user(user)  # для триггера аудита в БД
         serializer.save()
         # Аудит выполняется автоматически триггером trg_product_audit
 
     def create(self, request, *args, **kwargs):
         if request.user.roleId.roleName not in ['Администратор', 'Менеджер']:
-            return Response({'error': 'Access denied'}, status=403)
+            return Response({'detail': 'Доступ запрещён.'}, status=403)
         return super().create(request, *args, **kwargs)
 
 class AdminProductDetailView(generics.RetrieveUpdateDestroyAPIView):
@@ -896,7 +893,7 @@ class AdminProductDetailView(generics.RetrieveUpdateDestroyAPIView):
     def update(self, request, *args, **kwargs):
         user = request.user
         if user.roleId.roleName not in ['Администратор', 'Менеджер']:
-            return Response({'error': 'Access denied'}, status=403)
+            return Response({'detail': 'Доступ запрещён.'}, status=403)
         set_audit_user(user)  # для триггера аудита в БД
         response = super().update(request, *args, **kwargs)
         # Аудит выполняется автоматически триггером trg_product_audit
@@ -905,7 +902,7 @@ class AdminProductDetailView(generics.RetrieveUpdateDestroyAPIView):
     def destroy(self, request, *args, **kwargs):
         user = request.user
         if user.roleId.roleName not in ['Администратор', 'Менеджер']:
-            return Response({'error': 'Access denied'}, status=403)
+            return Response({'detail': 'Доступ запрещён.'}, status=403)
         set_audit_user(user)  # для триггера аудита в БД
         response = super().destroy(request, *args, **kwargs)
         # Аудит выполняется автоматически триггером trg_product_audit
@@ -935,12 +932,12 @@ class ProductImageViewSet(viewsets.ModelViewSet):
                 serializer.save(productId=product)
                 log_audit(user, 'CREATE', 'productImage', get_pk(serializer.instance), old_values=None, new_values=model_to_log_dict(serializer.instance))
         else:
-            raise PermissionDenied("Access denied")
+            raise PermissionDenied("Доступ запрещён.")
 
     def perform_update(self, serializer):
         user = self.request.user
         if user.roleId.roleName not in ['Администратор', 'Менеджер']:
-            raise PermissionDenied("Access denied")
+            raise PermissionDenied("Доступ запрещён.")
         old_values = model_to_log_dict(serializer.instance)
         super().perform_update(serializer)
         log_audit(user, 'UPDATE', 'productImage', get_pk(serializer.instance), old_values=old_values, new_values=model_to_log_dict(serializer.instance))
@@ -948,7 +945,7 @@ class ProductImageViewSet(viewsets.ModelViewSet):
     def perform_destroy(self, instance):
         user = self.request.user
         if user.roleId.roleName not in ['Администратор', 'Менеджер']:
-            raise PermissionDenied("Access denied")
+            raise PermissionDenied("Доступ запрещён.")
         old_values = model_to_log_dict(instance)
         record_id = get_pk(instance)
         super().perform_destroy(instance)
@@ -977,12 +974,12 @@ class ProductAttributeViewSet(viewsets.ModelViewSet):
                 serializer.save(productId=product)
                 log_audit(user, 'CREATE', 'productAttribute', get_pk(serializer.instance), old_values=None, new_values=model_to_log_dict(serializer.instance))
         else:
-            raise PermissionDenied("Access denied")
+            raise PermissionDenied("Доступ запрещён.")
 
     def perform_update(self, serializer):
         user = self.request.user
         if user.roleId.roleName not in ['Администратор', 'Менеджер']:
-            raise PermissionDenied("Access denied")
+            raise PermissionDenied("Доступ запрещён.")
         old_values = model_to_log_dict(serializer.instance)
         super().perform_update(serializer)
         log_audit(user, 'UPDATE', 'productAttribute', get_pk(serializer.instance), old_values=old_values, new_values=model_to_log_dict(serializer.instance))
@@ -990,7 +987,7 @@ class ProductAttributeViewSet(viewsets.ModelViewSet):
     def perform_destroy(self, instance):
         user = self.request.user
         if user.roleId.roleName not in ['Администратор', 'Менеджер']:
-            raise PermissionDenied("Access denied")
+            raise PermissionDenied("Доступ запрещён.")
         old_values = model_to_log_dict(instance)
         record_id = get_pk(instance)
         super().perform_destroy(instance)
@@ -1005,12 +1002,12 @@ class ProductImageUploadView(APIView):
     def post(self, request):
         user = request.user
         if user.roleId.roleName not in ['Администратор', 'Менеджер']:
-            return Response({'error': 'Access denied'}, status=403)
+            return Response({'detail': 'Доступ запрещён.'}, status=403)
         file = request.FILES.get('file')
         if not file:
-            return Response({'error': 'No file provided'}, status=400)
+            return Response({'detail': 'Файл не предоставлен.'}, status=400)
         if not file.content_type.startswith('image/'):
-            return Response({'error': 'File must be an image'}, status=400)
+            return Response({'detail': 'Файл должен быть изображением.'}, status=400)
         ext = os.path.splitext(file.name)[1] or '.jpg'
         filename = f"{uuid.uuid4().hex}{ext}"
         path = os.path.join('products', filename)
@@ -1031,7 +1028,7 @@ class AdminCategoryListCreateView(generics.ListCreateAPIView):
 
     def create(self, request, *args, **kwargs):
         if request.user.roleId.roleName not in ['Администратор', 'Менеджер']:
-            return Response({'error': 'Access denied'}, status=403)
+            return Response({'detail': 'Доступ запрещён.'}, status=403)
         response = super().create(request, *args, **kwargs)
         if response.status_code == 201 and hasattr(response, 'data') and response.data.get('categoryId'):
             instance = Category.objects.get(categoryId=response.data['categoryId'])
@@ -1051,7 +1048,7 @@ class AdminCategoryDetailView(generics.RetrieveUpdateDestroyAPIView):
 
     def update(self, request, *args, **kwargs):
         if request.user.roleId.roleName not in ['Администратор', 'Менеджер']:
-            return Response({'error': 'Access denied'}, status=403)
+            return Response({'detail': 'Доступ запрещён.'}, status=403)
         instance = self.get_object()
         old_values = model_to_log_dict(instance)
         response = super().update(request, *args, **kwargs)
@@ -1062,7 +1059,7 @@ class AdminCategoryDetailView(generics.RetrieveUpdateDestroyAPIView):
 
     def destroy(self, request, *args, **kwargs):
         if request.user.roleId.roleName not in ['Администратор', 'Менеджер']:
-            return Response({'error': 'Access denied'}, status=403)
+            return Response({'detail': 'Доступ запрещён.'}, status=403)
         instance = self.get_object()
         old_values = model_to_log_dict(instance)
         record_id = get_pk(instance)
@@ -1083,7 +1080,7 @@ class AdminBrandListCreateView(generics.ListCreateAPIView):
 
     def create(self, request, *args, **kwargs):
         if request.user.roleId.roleName not in ['Администратор', 'Менеджер']:
-            return Response({'error': 'Access denied'}, status=403)
+            return Response({'detail': 'Доступ запрещён.'}, status=403)
         response = super().create(request, *args, **kwargs)
         if response.status_code == 201 and hasattr(response, 'data') and response.data.get('brandId'):
             instance = Brand.objects.get(brandId=response.data['brandId'])
@@ -1103,7 +1100,7 @@ class AdminBrandDetailView(generics.RetrieveUpdateDestroyAPIView):
 
     def update(self, request, *args, **kwargs):
         if request.user.roleId.roleName not in ['Администратор', 'Менеджер']:
-            return Response({'error': 'Access denied'}, status=403)
+            return Response({'detail': 'Доступ запрещён.'}, status=403)
         instance = self.get_object()
         old_values = model_to_log_dict(instance)
         response = super().update(request, *args, **kwargs)
@@ -1114,7 +1111,7 @@ class AdminBrandDetailView(generics.RetrieveUpdateDestroyAPIView):
 
     def destroy(self, request, *args, **kwargs):
         if request.user.roleId.roleName not in ['Администратор', 'Менеджер']:
-            return Response({'error': 'Access denied'}, status=403)
+            return Response({'detail': 'Доступ запрещён.'}, status=403)
         instance = self.get_object()
         old_values = model_to_log_dict(instance)
         record_id = get_pk(instance)
@@ -1143,7 +1140,7 @@ class AdminUserCreateView(generics.CreateAPIView):
 
     def perform_create(self, serializer):
         if self.request.user.roleId.roleName != 'Администратор':
-            raise PermissionDenied("Access denied")
+            raise PermissionDenied("Доступ запрещён.")
         serializer.save()
         log_audit(
             self.request.user, 'CREATE', 'user',
@@ -1154,7 +1151,7 @@ class AdminUserCreateView(generics.CreateAPIView):
 
     def create(self, request, *args, **kwargs):
         if request.user.roleId.roleName != 'Администратор':
-            return Response({'error': 'Access denied'}, status=403)
+            return Response({'detail': 'Доступ запрещён.'}, status=403)
         return super().create(request, *args, **kwargs)
 
 
@@ -1184,10 +1181,10 @@ class AdminUserDetailView(generics.RetrieveUpdateDestroyAPIView):
 
     def update(self, request, *args, **kwargs):
         if request.user.roleId.roleName != 'Администратор':
-            return Response({'error': 'Access denied'}, status=403)
+            return Response({'detail': 'Доступ запрещён.'}, status=403)
         instance = self.get_object()
         if instance.userId == request.user.userId and request.data.get('is_active') is False:
-            return Response({'error': 'Нельзя заблокировать свой аккаунт'}, status=400)
+            return Response({'detail': 'Нельзя заблокировать свой аккаунт.'}, status=400)
         old_values = model_to_log_dict(instance)
         response = super().update(request, *args, **kwargs)
         if response.status_code == 200:
@@ -1197,10 +1194,10 @@ class AdminUserDetailView(generics.RetrieveUpdateDestroyAPIView):
 
     def destroy(self, request, *args, **kwargs):
         if request.user.roleId.roleName != 'Администратор':
-            return Response({'error': 'Access denied'}, status=403)
+            return Response({'detail': 'Доступ запрещён.'}, status=403)
         instance = self.get_object()
         if instance.userId == request.user.userId:
-            return Response({'error': 'Cannot delete your own account'}, status=400)
+            return Response({'detail': 'Нельзя удалить собственный аккаунт.'}, status=400)
         old_values = model_to_log_dict(instance)
         record_id = get_pk(instance)
         response = super().destroy(request, *args, **kwargs)
@@ -1874,8 +1871,15 @@ class AdminPriceAdjustmentView(APIView):
                 'message': f'Цены в категории обновлены на {percent_change:+.2f}%.'
             })
         except Exception as e:
+            logger.exception("Ошибка изменения цен")
             error_msg = str(e)
-            return Response({'detail': error_msg.split('\n')[0]}, status=status.HTTP_400_BAD_REQUEST)
+            if 'не найдена' in error_msg or 'does not exist' in error_msg.lower():
+                detail = 'Указанная категория не найдена.'
+            elif 'Нет товаров' in error_msg:
+                detail = 'В указанной категории нет товаров.'
+            else:
+                detail = 'Ошибка при изменении цен. Попробуйте позже.'
+            return Response({'detail': detail}, status=status.HTTP_400_BAD_REQUEST)
 
 
 class AdminUserActivityView(APIView):

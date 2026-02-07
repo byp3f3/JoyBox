@@ -11,6 +11,7 @@ https://docs.djangoproject.com/en/5.2/ref/settings/
 """
 
 from pathlib import Path
+from decouple import config, Csv
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -19,13 +20,12 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/5.2/howto/deployment/checklist/
 
-# SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = 'django-insecure-g#qi2x$=&@5xew7x4a#)x#wf46hx9gp0d2c5qbuaxg)^l2@*f4'
+# Секретный ключ и режим отладки берутся из .env файла
+SECRET_KEY = config('SECRET_KEY')
 
-# SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = config('DEBUG', default=False, cast=bool)
 
-ALLOWED_HOSTS = ['*']
+ALLOWED_HOSTS = config('ALLOWED_HOSTS', default='127.0.0.1,localhost', cast=Csv())
 
 
 # Application definition
@@ -86,19 +86,21 @@ REST_FRAMEWORK = {
     'DEFAULT_PARSER_CLASSES': [
         'rest_framework.parsers.JSONParser',
     ],
+    'EXCEPTION_HANDLER': 'core.exceptions.custom_exception_handler',
 }
 
 # Database
 # https://docs.djangoproject.com/en/5.2/ref/settings/#databases
+# Параметры подключения к БД берутся из .env файла
 
 DATABASES = {
     'default': {
-        'ENGINE': 'django.db.backends.postgresql',
-        'HOST' : '127.0.0.1',
-        'PORT' : '5432',
-        'NAME' : 'joybox_test',
-        'USER' : 'postgres',
-        'PASSWORD' : '124'
+        'ENGINE': config('DB_ENGINE', default='django.db.backends.postgresql'),
+        'NAME':     config('DB_NAME', default='joybox'),
+        'USER':     config('DB_USER', default='postgres'),
+        'PASSWORD': config('DB_PASSWORD', default=''),
+        'HOST':     config('DB_HOST', default='127.0.0.1'),
+        'PORT':     config('DB_PORT', default='5432'),
     }
 }
 

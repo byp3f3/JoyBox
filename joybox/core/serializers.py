@@ -170,7 +170,7 @@ class UserRegistrationSerializer(serializers.ModelSerializer):
             role, created = Role.objects.get_or_create(roleName='Покупатель')
             validated_data['roleId'] = role
         except Exception as e:
-            raise serializers.ValidationError(f"Ошибка при создании роли: {str(e)}")
+            raise serializers.ValidationError("Ошибка при назначении роли пользователю.")
         
         # Set username to email if not provided
         if 'username' not in validated_data:
