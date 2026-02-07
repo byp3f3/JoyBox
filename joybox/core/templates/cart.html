@@ -1,0 +1,367 @@
+{% extends 'base.html' %}
+
+{% block title %}Корзина - JoyBox{% endblock %}
+
+{% block extra_css %}
+<style>
+    .cart-page {
+        padding: 40px 0;
+        min-height: calc(100vh - 200px);
+    }
+    .cart-page h1 {
+        color: var(--primary-color);
+        font-weight: 700;
+        margin-bottom: 25px;
+    }
+    #cartContent { min-height: 200px; }
+    .cart-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+        gap: 24px;
+        margin-bottom: 24px;
+    }
+    .cart-card {
+        background: var(--bg-card, #fff);
+        border-radius: 12px;
+        overflow: hidden;
+        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.08);
+        border: 1px solid var(--border-muted, #eee);
+        display: flex;
+        flex-direction: column;
+        transition: box-shadow 0.2s ease;
+    }
+    .cart-card:hover {
+        box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+    }
+    .cart-card-image {
+        width: 100%;
+        height: 200px;
+        object-fit: cover;
+        background: var(--bg-content, #f8f9fa);
+    }
+    .cart-card-image-wrap {
+        height: 200px;
+        background: var(--bg-content, #f8f9fa);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        overflow: hidden;
+    }
+    .cart-card-image-placeholder {
+        color: var(--text-light);
+        font-size: 14px;
+    }
+    .cart-card-body {
+        padding: 20px;
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+    }
+    .cart-card-name {
+        font-weight: 600;
+        font-size: 17px;
+        color: var(--text-dark);
+        line-height: 1.35;
+    }
+    .cart-card-name a {
+        color: inherit;
+        text-decoration: none;
+    }
+    .cart-card-name a:hover {
+        color: var(--primary-color);
+        text-decoration: underline;
+    }
+    .cart-card-price {
+        color: var(--text-light);
+        font-size: 14px;
+    }
+    .cart-card-qty-row {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        flex-wrap: wrap;
+    }
+    .cart-card-qty-label {
+        font-size: 14px;
+        color: var(--text-light);
+    }
+    .cart-qty-controls {
+        display: inline-flex;
+        align-items: center;
+        border: 1px solid var(--border-muted, #ddd);
+        border-radius: 10px;
+        overflow: hidden;
+        background: var(--bg-content, #f8f9fa);
+    }
+    .cart-qty-btn {
+        width: 40px;
+        height: 40px;
+        border: none;
+        background: transparent;
+        color: var(--text-dark);
+        font-size: 18px;
+        cursor: pointer;
+        transition: background 0.2s, color 0.2s;
+    }
+    .cart-qty-btn:hover {
+        background: var(--primary-color);
+        color: white;
+    }
+    .cart-qty-input {
+        width: 52px;
+        text-align: center;
+        border: none;
+        border-left: 1px solid var(--border-muted, #eee);
+        border-right: 1px solid var(--border-muted, #eee);
+        font-size: 16px;
+        font-weight: 600;
+        background: var(--bg-card, #fff);
+        color: var(--text-dark);
+    }
+    .cart-qty-input:focus { outline: none; }
+    .cart-card-line-total {
+        font-weight: 700;
+        color: var(--primary-color);
+        font-size: 18px;
+        margin-top: 4px;
+    }
+    .cart-card-actions {
+        display: flex;
+        gap: 10px;
+        margin-top: auto;
+        padding-top: 12px;
+        border-top: 1px solid var(--border-muted, #eee);
+    }
+    .cart-card-actions .btn-product {
+        flex: 1;
+        padding: 10px 16px;
+        background: linear-gradient(135deg, var(--primary-color), #b91c1c);
+        color: white;
+        border: none;
+        border-radius: 8px;
+        font-weight: 600;
+        font-size: 14px;
+        cursor: pointer;
+        text-decoration: none;
+        text-align: center;
+        transition: all 0.2s;
+    }
+    .cart-card-actions .btn-product:hover {
+        color: white;
+        opacity: 0.95;
+        transform: translateY(-1px);
+    }
+    .cart-remove-btn {
+        padding: 10px 16px;
+        background: #dc3545;
+        color: white;
+        border: none;
+        border-radius: 8px;
+        cursor: pointer;
+        font-size: 14px;
+        font-weight: 600;
+        transition: all 0.2s;
+    }
+    .cart-remove-btn:hover {
+        background: #c82333;
+        transform: translateY(-1px);
+    }
+    .cart-total-row {
+        background: var(--bg-card, #fff);
+        border-radius: 12px;
+        border: 1px solid var(--border-muted, #eee);
+        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.08);
+        font-size: 18px;
+        padding: 24px 28px;
+        display: flex;
+        justify-content: flex-end;
+        align-items: center;
+        gap: 16px;
+    }
+    .cart-total-label { font-weight: 600; color: var(--text-dark); }
+    .cart-total-value {
+        font-weight: 700;
+        color: var(--primary-color);
+        font-size: 22px;
+    }
+    .cart-checkout-row {
+        margin-top: 20px;
+        text-align: right;
+    }
+    .btn-checkout {
+        display: inline-block;
+        padding: 14px 28px;
+        background: linear-gradient(135deg, var(--primary-color), #b91c1c);
+        color: white;
+        border-radius: 10px;
+        font-weight: 700;
+        font-size: 16px;
+        text-decoration: none;
+        transition: all 0.2s;
+    }
+    .btn-checkout:hover {
+        color: white;
+        opacity: 0.95;
+        transform: translateY(-2px);
+    }
+    .cart-success-banner {
+        background: #d4edda;
+        color: #155724;
+        padding: 16px 20px;
+        border-radius: 12px;
+        margin-bottom: 20px;
+        font-weight: 600;
+    }
+    @media (max-width: 576px) {
+        .cart-grid { grid-template-columns: 1fr; }
+        .cart-card-body { padding: 16px; }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="cart-page container">
+    <h1><i class="fas fa-shopping-cart me-2"></i>Корзина</h1>
+    <div id="cartSuccessBanner" class="cart-success-banner" style="display: none;"></div>
+    <div id="cartContent">
+        <p>Загрузка...</p>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+(function() {
+    const authToken = localStorage.getItem('authToken');
+    const cartContent = document.getElementById('cartContent');
+    if (!authToken) {
+        cartContent.innerHTML = '<p>Войдите в аккаунт, чтобы просматривать корзину.</p><a href="/login/" class="btn btn-custom">Войти</a>';
+        return;
+    }
+    function escapeHtml(s) {
+        if (s == null) return '';
+        return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+    }
+    function formatPrice(n) {
+        return Number(n).toLocaleString('ru-RU') + ' ₽';
+    }
+    var urlParams = new URLSearchParams(window.location.search);
+    if (urlParams.get('order') === 'success') {
+        var orderId = urlParams.get('orderId') || '';
+        var banner = document.getElementById('cartSuccessBanner');
+        if (banner) {
+            banner.textContent = 'Заказ успешно оформлен.' + (orderId ? ' Номер заказа: ' + orderId + '.' : '');
+            banner.style.display = 'block';
+            history.replaceState({}, document.title, window.location.pathname);
+        }
+    }
+    function loadCart() {
+        fetch('/api/auth/cart/', { headers: { 'Authorization': 'Token ' + authToken } })
+        .then(function(r) {
+            if (r.status === 401) {
+                cartContent.innerHTML = '<p>Войдите в аккаунт.</p><a href="/login/" class="btn btn-custom">Войти</a>';
+                return null;
+            }
+            if (r.status === 403) {
+                cartContent.innerHTML = '<p>Корзина доступна только покупателям.</p><a href="/profile/" class="btn btn-custom">Профиль</a>';
+                return null;
+            }
+            if (!r.ok) throw new Error('Ошибка загрузки корзины');
+            return r.json();
+        })
+        .then(function(data) {
+            if (data === null) return;
+            var items = data.items || [];
+            var total = data.total != null ? data.total : '0';
+            if (items.length === 0) {
+                cartContent.innerHTML = '<p>Корзина пуста.</p><a href="/catalog/" class="btn btn-custom">Перейти в каталог</a>';
+                return;
+            }
+            var html = '<div class="cart-grid">';
+            items.forEach(function(item) {
+                var cartId = item.cartId;
+                var productId = item.productId;
+                var name = escapeHtml(item.productName || 'Товар');
+                var price = item.price != null ? formatPrice(item.price) : '—';
+                var qty = Math.max(1, parseInt(item.quantity, 10) || 1);
+                var lineTotal = item.lineTotal != null ? formatPrice(item.lineTotal) : formatPrice(0);
+                var img = item.mainImage && item.mainImage.url ? item.mainImage.url : '';
+                html += '<div class="cart-card" data-cart-id="' + cartId + '">';
+                html += '<div class="cart-card-image-wrap">';
+                if (img) html += '<img src="' + escapeHtml(img) + '" alt="" class="cart-card-image">';
+                else html += '<div class="cart-card-image-placeholder">Нет фото</div>';
+                html += '</div>';
+                html += '<div class="cart-card-body">';
+                html += '<h3 class="cart-card-name"><a href="/product/' + productId + '/">' + name + '</a></h3>';
+                html += '<div class="cart-card-price">' + price + ' за шт.</div>';
+                html += '<div class="cart-card-qty-row"><span class="cart-card-qty-label">Количество:</span><div class="cart-qty-controls">';
+                html += '<button type="button" class="cart-qty-btn" onclick="window.cartQtyChange(' + cartId + ', -1)">−</button>';
+                html += '<input type="number" class="cart-qty-input" value="' + qty + '" min="1" data-cart-id="' + cartId + '" onchange="window.cartQtySet(' + cartId + ', this.value)">';
+                html += '<button type="button" class="cart-qty-btn" onclick="window.cartQtyChange(' + cartId + ', 1)">+</button>';
+                html += '</div></div>';
+                html += '<div class="cart-card-line-total" data-line-total="' + cartId + '">Сумма: ' + lineTotal + '</div>';
+                html += '<div class="cart-card-actions">';
+                html += '<a href="/product/' + productId + '/" class="btn-product">К товару</a>';
+                html += '<button type="button" class="cart-remove-btn" onclick="window.cartRemove(' + cartId + ')">Удалить</button>';
+                html += '</div></div></div>';
+            });
+            html += '</div>';
+            html += '<div class="cart-total-row"><span class="cart-total-label">Итого:</span><span class="cart-total-value" id="cartTotalValue">' + formatPrice(total) + '</span></div>';
+            html += '<div class="cart-checkout-row"><a href="/checkout/" class="btn-checkout">Оформить заказ</a></div>';
+            cartContent.innerHTML = html;
+        })
+        .catch(function() {
+            cartContent.innerHTML = '<p>Ошибка загрузки корзины.</p>';
+        });
+    }
+    window.cartQtyChange = function(cartId, delta) {
+        var card = document.querySelector('.cart-card[data-cart-id="' + cartId + '"]');
+        if (!card) return;
+        var input = card.querySelector('.cart-qty-input');
+        var newVal = Math.max(1, (parseInt(input.value, 10) || 1) + delta);
+        input.value = newVal;
+        window.cartQtySet(cartId, newVal);
+    };
+    window.cartQtySet = function(cartId, value) {
+        var qty = Math.max(1, parseInt(value, 10) || 1);
+        fetch('/api/auth/cart/' + cartId + '/', {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json', 'Authorization': 'Token ' + authToken },
+            body: JSON.stringify({ quantity: qty })
+        })
+        .then(function(r) {
+            if (r.ok) return r.json();
+            return r.json().then(function(body) {
+                var msg = (body && body.quantity && body.quantity[0]) || 'Не удалось изменить количество';
+                alert(msg);
+            });
+        })
+        .then(function(updated) {
+            if (updated && updated.lineTotal != null) {
+                var card = document.querySelector('.cart-card[data-cart-id="' + cartId + '"]');
+                if (card) {
+                    var lineEl = card.querySelector('[data-line-total="' + cartId + '"]');
+                    if (lineEl) lineEl.textContent = 'Сумма: ' + formatPrice(updated.lineTotal);
+                }
+                loadCart();
+            }
+        })
+        .catch(function() { alert('Ошибка при изменении количества.'); });
+    };
+    window.cartRemove = function(cartId) {
+        if (!confirm('Удалить товар из корзины?')) return;
+        fetch('/api/auth/cart/' + cartId + '/', {
+            method: 'DELETE',
+            headers: { 'Authorization': 'Token ' + authToken }
+        })
+        .then(function(r) {
+            if (r.ok) loadCart();
+            else alert('Не удалось удалить.');
+        })
+        .catch(function() { alert('Ошибка при удалении.'); });
+    };
+    loadCart();
+})();
+</script>
+{% endblock %}

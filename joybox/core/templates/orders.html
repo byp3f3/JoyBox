@@ -1,0 +1,362 @@
+{% extends 'base.html' %}
+
+{% block title %}Мои заказы - JoyBox{% endblock %}
+
+{% block extra_css %}
+<style>
+    .orders-page { padding: 40px 0; min-height: calc(100vh - 200px); }
+    .orders-page h1 { color: var(--primary-color); font-weight: 700; margin-bottom: 28px; }
+    #ordersContent { min-height: 200px; }
+    .orders-list { display: flex; flex-direction: column; gap: 20px; }
+    .order-card {
+        background: var(--bg-card, #fff);
+        border-radius: 12px;
+        padding: 24px;
+        border: 1px solid var(--border-muted, #eee);
+        box-shadow: 0 4px 15px rgba(0,0,0,0.06);
+        transition: box-shadow 0.2s;
+    }
+    .order-card:hover { box-shadow: 0 8px 24px rgba(0,0,0,0.1); }
+    .order-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        margin-bottom: 16px;
+        flex-wrap: wrap;
+        gap: 12px;
+    }
+    .order-header-left h3 { margin: 0 0 8px 0; color: var(--text-dark); font-size: 20px; }
+    .order-header-left p { margin: 4px 0; color: var(--text-light); font-size: 14px; }
+    .order-header-right { text-align: right; }
+    .order-total { font-weight: 700; font-size: 22px; color: var(--primary-color); margin-bottom: 8px; }
+    .order-status-badge {
+        display: inline-block;
+        padding: 6px 12px;
+        border-radius: 6px;
+        font-size: 13px;
+        font-weight: 600;
+    }
+    .order-status-new { background: #e3f2fd; color: #1976d2; }
+    .order-status-processing { background: #fff3e0; color: #f57c00; }
+    .order-status-shipped { background: #e8f5e9; color: #388e3c; }
+    .order-status-delivered { background: #e8f5e9; color: #2e7d32; }
+    .order-status-cancelled { background: #ffebee; color: #c62828; }
+    .order-payment-badge {
+        display: inline-block;
+        padding: 4px 10px;
+        border-radius: 6px;
+        font-size: 12px;
+        margin-top: 6px;
+    }
+    .order-payment-pending { background: #fff3e0; color: #f57c00; }
+    .order-payment-paid { background: #e8f5e9; color: #2e7d32; }
+    .order-payment-refund { background: #ffebee; color: #c62828; }
+    .order-info {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 16px;
+        margin-top: 16px;
+        padding-top: 16px;
+        border-top: 1px solid var(--border-muted, #eee);
+    }
+    .order-info-item { font-size: 14px; }
+    .order-info-item strong { display: block; color: var(--text-dark); margin-bottom: 4px; }
+    .order-info-item span { color: var(--text-light); }
+    .order-actions {
+        margin-top: 16px;
+        display: flex;
+        gap: 10px;
+        flex-wrap: wrap;
+    }
+    .btn-order-detail {
+        padding: 10px 20px;
+        background: var(--primary-color);
+        color: white;
+        border: none;
+        border-radius: 8px;
+        font-weight: 600;
+        cursor: pointer;
+        text-decoration: none;
+        display: inline-block;
+        transition: all 0.2s;
+    }
+    .btn-order-detail:hover { opacity: 0.9; transform: translateY(-1px); }
+    .btn-order-pay {
+        padding: 10px 20px;
+        background: #28a745;
+        color: white;
+        border: none;
+        border-radius: 8px;
+        font-weight: 600;
+        cursor: pointer;
+        text-decoration: none;
+        display: inline-block;
+        transition: all 0.2s;
+    }
+    .btn-order-pay:hover { opacity: 0.9; transform: translateY(-1px); }
+    .btn-order-cancel {
+        padding: 10px 20px;
+        background: #dc3545;
+        color: white;
+        border: none;
+        border-radius: 8px;
+        font-weight: 600;
+        cursor: pointer;
+        text-decoration: none;
+        display: inline-block;
+        transition: all 0.2s;
+    }
+    .btn-order-cancel:hover { opacity: 0.9; transform: translateY(-1px); }
+    .order-modal {
+        position: fixed;
+        top: 0; left: 0; right: 0; bottom: 0;
+        background: rgba(0,0,0,0.4);
+        display: none;
+        align-items: center;
+        justify-content: center;
+        z-index: 1000;
+    }
+    .order-modal.active { display: flex; }
+    .order-modal-content {
+        background: var(--bg-card, #fff);
+        border-radius: 12px;
+        padding: 28px;
+        max-width: 700px;
+        width: 90%;
+        max-height: 90vh;
+        overflow-y: auto;
+    }
+    .order-modal-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 20px;
+    }
+    .order-modal-header h3 { margin: 0; color: var(--text-dark); }
+    .order-modal-close {
+        background: none;
+        border: none;
+        font-size: 24px;
+        cursor: pointer;
+        color: var(--text-light);
+        padding: 0;
+        width: 32px;
+        height: 32px;
+    }
+    .order-items-list { margin: 20px 0; }
+    .order-items-cards {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+        gap: 12px;
+    }
+    .order-item-card {
+        background: var(--bg-card, #fff);
+        border: 1px solid var(--border-muted, #eee);
+        border-radius: 10px;
+        padding: 14px;
+        transition: box-shadow 0.2s;
+    }
+    .order-item-card:hover { box-shadow: 0 4px 12px rgba(0,0,0,0.08); }
+    .order-item-name { font-weight: 600; color: var(--text-dark); margin-bottom: 6px; line-height: 1.3; }
+    .order-item-name a { color: var(--primary-color); text-decoration: none; }
+    .order-item-name a:hover { text-decoration: underline; }
+    .order-item-qty { color: var(--text-light); font-size: 13px; margin-bottom: 4px; }
+    .order-item-price { font-weight: 600; color: var(--primary-color); font-size: 15px; }
+    .order-item-review-link {
+        display: inline-block;
+        margin-top: 8px;
+        font-size: 13px;
+        color: var(--primary-color);
+        text-decoration: none;
+    }
+    .order-item-review-link:hover { text-decoration: underline; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="orders-page container">
+    <h1><i class="fas fa-shopping-bag me-2"></i>Мои заказы</h1>
+    <div id="ordersContent">
+        <p>Загрузка...</p>
+    </div>
+</div>
+<div id="orderModal" class="order-modal">
+    <div class="order-modal-content">
+        <div class="order-modal-header">
+            <h3 id="modalOrderTitle">Детали заказа</h3>
+            <button type="button" class="order-modal-close" onclick="closeOrderModal()">&times;</button>
+        </div>
+        <div id="orderModalBody"></div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+(function() {
+    const authToken = localStorage.getItem('authToken');
+    const content = document.getElementById('ordersContent');
+    if (!authToken) {
+        content.innerHTML = '<p>Войдите в аккаунт для просмотра заказов.</p><a href="/login/" class="btn btn-custom">Войти</a>';
+        return;
+    }
+    const headers = { 'Authorization': 'Token ' + authToken };
+    function escapeHtml(s) {
+        if (s == null) return '';
+        return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+    }
+    function formatPrice(n) { return Number(n).toLocaleString('ru-RU') + ' ₽'; }
+    function formatDate(d) {
+        if (!d) return '';
+        var date = new Date(d);
+        return date.toLocaleDateString('ru-RU') + ' ' + date.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' });
+    }
+    function getStatusClass(status) {
+        var s = (status || '').toLowerCase();
+        if (s.indexOf('новый') !== -1) return 'order-status-new';
+        if (s.indexOf('обработ') !== -1 || s.indexOf('собран') !== -1) return 'order-status-processing';
+        if (s.indexOf('достав') !== -1 && s.indexOf('доставлен') === -1) return 'order-status-shipped';
+        if (s.indexOf('доставлен') !== -1) return 'order-status-delivered';
+        if (s.indexOf('отмен') !== -1) return 'order-status-cancelled';
+        return 'order-status-new';
+    }
+    function getPaymentStatusClass(paymentStatus) {
+        if (paymentStatus === 'ждет оплаты') return 'order-payment-pending';
+        if (paymentStatus === 'оплачено') return 'order-payment-paid';
+        return 'order-payment-refund';
+    }
+
+    var urlParams = new URLSearchParams(window.location.search);
+    var highlightOrderId = urlParams.get('order');
+
+    function loadOrders() {
+        fetch('/api/auth/orders/', { headers: headers })
+        .then(function(r) {
+            if (r.status === 403 || r.status === 401) {
+                content.innerHTML = '<p>Доступ запрещён.</p><a href="/login/" class="btn btn-custom">Войти</a>';
+                return [];
+            }
+            if (!r.ok) throw new Error('Ошибка загрузки заказов');
+            return r.json();
+        })
+        .then(function(orders) {
+            if (!Array.isArray(orders) || orders.length === 0) {
+                content.innerHTML = '<p>У вас пока нет заказов.</p><a href="/catalog/" class="btn btn-custom">Перейти в каталог</a>';
+                return;
+            }
+            var html = '<div class="orders-list">';
+            orders.forEach(function(o) {
+                var isHighlighted = highlightOrderId && parseInt(highlightOrderId, 10) === o.orderId;
+                html += '<div class="order-card"' + (isHighlighted ? ' style="border: 2px solid var(--primary-color);"' : '') + '>';
+                html += '<div class="order-header">';
+                html += '<div class="order-header-left">';
+                html += '<h3>Заказ №' + o.orderId + '</h3>';
+                html += '<p>Создан: ' + formatDate(o.createdAt) + '</p>';
+                html += '<span class="order-status-badge ' + getStatusClass(o.status) + '">' + escapeHtml(o.status || '') + '</span>';
+                html += '</div>';
+                html += '<div class="order-header-right">';
+                html += '<div class="order-total">' + formatPrice(o.total) + '</div>';
+                html += '<span class="order-payment-badge ' + getPaymentStatusClass(o.paymentStatus) + '">' + escapeHtml(o.paymentStatusLabel || o.paymentStatus || '') + '</span>';
+                html += '</div></div>';
+                html += '<div class="order-info">';
+                html += '<div class="order-info-item"><strong>Доставка</strong><span>' + escapeHtml(o.deliveryTypeLabel || o.deliveryType || '') + '</span></div>';
+                html += '<div class="order-info-item"><strong>Оплата</strong><span>' + escapeHtml(o.paymentTypeLabel || o.paymentType || '') + '</span></div>';
+                html += '</div>';
+                html += '<div class="order-actions">';
+                html += '<button type="button" class="btn-order-detail" onclick="showOrderDetail(' + o.orderId + ')">Подробнее</button>';
+                if (o.paymentType === 'онлайн' && o.paymentStatus === 'ждет оплаты') {
+                    html += '<a href="/payment/?orderId=' + o.orderId + '" class="btn-order-pay">Оплатить</a>';
+                }
+                var statusLower = (o.status || '').toLowerCase();
+                if (statusLower.indexOf('отмен') === -1 && statusLower.indexOf('доставлен') === -1 && statusLower.indexOf('выполнен') === -1 && statusLower.indexOf('получен') === -1) {
+                    var paymentTypeEsc = String(o.paymentType || '').replace(/\\/g, '\\\\').replace(/'/g, "\\'");
+                    html += '<button type="button" class="btn-order-cancel" onclick="cancelOrder(' + o.orderId + ", '" + paymentTypeEsc + "')\">Отменить заказ</button>";
+                }
+                html += '</div></div>';
+            });
+            html += '</div>';
+            content.innerHTML = html;
+            if (highlightOrderId) {
+                setTimeout(function() {
+                    var card = document.querySelector('.order-card[style*="border: 2px"]');
+                    if (card) card.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                }, 300);
+            }
+        })
+        .catch(function() {
+            content.innerHTML = '<p>Ошибка загрузки заказов.</p>';
+        });
+    }
+
+    window.showOrderDetail = function(orderId) {
+        fetch('/api/auth/orders/' + orderId + '/', { headers: headers })
+        .then(function(r) { return r.ok ? r.json() : null; })
+        .then(function(order) {
+            if (!order) {
+                alert('Не удалось загрузить детали заказа.');
+                return;
+            }
+            var html = '<div><h4>Заказ №' + order.orderId + '</h4>';
+            html += '<p><strong>Статус:</strong> ' + escapeHtml(order.status || '') + '</p>';
+            html += '<p><strong>Сумма:</strong> ' + formatPrice(order.total) + '</p>';
+            html += '<p><strong>Доставка:</strong> ' + escapeHtml(order.deliveryTypeLabel || '') + '</p>';
+            html += '<p><strong>Оплата:</strong> ' + escapeHtml(order.paymentTypeLabel || '') + ' (' + escapeHtml(order.paymentStatusLabel || '') + ')</p>';
+            if (order.address) {
+                var addr = order.address;
+                html += '<p><strong>Адрес:</strong> ' + escapeHtml((addr.city || '') + ', ' + (addr.street || '') + ', д. ' + (addr.house || '') + (addr.flat ? ', кв. ' + addr.flat : '') + ', ' + (addr.index || '')) + '</p>';
+            }
+            html += '<p><strong>Создан:</strong> ' + formatDate(order.createdAt) + '</p>';
+            if (order.note) html += '<p><strong>Комментарий:</strong> ' + escapeHtml(order.note) + '</p>';
+            html += '<div class="order-items-list"><h5>Товары:</h5><div class="order-items-cards">';
+            if (order.items && order.items.length) {
+                order.items.forEach(function(item) {
+                    var qty = item.quantity || 1;
+                    var sum = (item.unitPrice || 0) * qty;
+                    var productId = item.productId || '';
+                    var productUrl = productId ? '/product/' + productId + '/' : '#';
+                    var hasReview = item.userHasReview === true;
+                    html += '<div class="order-item-card">';
+                    html += '<div class="order-item-name">' + (productId ? '<a href="' + productUrl + '">' + escapeHtml(item.productName || '') + '</a>' : escapeHtml(item.productName || '')) + '</div>';
+                    html += '<div class="order-item-qty">× ' + qty + ' шт.</div>';
+                    html += '<div class="order-item-price">' + formatPrice(sum) + '</div>';
+                    if (productId && !hasReview) {
+                        html += '<a href="' + productUrl + '#write-review" class="order-item-review-link">Написать отзыв</a>';
+                    }
+                    html += '</div>';
+                });
+            }
+            html += '</div></div></div>';
+            document.getElementById('orderModalBody').innerHTML = html;
+            document.getElementById('orderModal').classList.add('active');
+        })
+        .catch(function() { alert('Ошибка загрузки деталей заказа.'); });
+    };
+
+    window.closeOrderModal = function() {
+        document.getElementById('orderModal').classList.remove('active');
+    };
+
+    window.cancelOrder = function(orderId, paymentType) {
+        if (!confirm('Вы уверены, что хотите отменить заказ №' + orderId + '?')) return;
+        fetch('/api/auth/orders/' + orderId + '/cancel/', {
+            method: 'POST',
+            headers: headers
+        })
+        .then(function(r) { return r.json().then(function(body) { return { status: r.status, body: body }; }); })
+        .then(function(res) {
+            if (res.status === 200) {
+                loadOrders();
+                var needRefund = paymentType === 'онлайн' || paymentType === 'картой при получении';
+                alert(needRefund ? 'Заказ отменён. Деньги будут возвращены на карту в течение 5 рабочих дней.' : 'Заказ отменён.');
+            } else {
+                var msg = (res.body.detail && (typeof res.body.detail === 'string' ? res.body.detail : JSON.stringify(res.body.detail))) || 'Не удалось отменить заказ.';
+                alert(msg);
+            }
+        })
+        .catch(function() { alert('Ошибка при отмене заказа.'); });
+    };
+
+    loadOrders();
+})();
+</script>
+{% endblock %}

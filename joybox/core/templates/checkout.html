@@ -1,0 +1,363 @@
+{% extends 'base.html' %}
+
+{% block title %}Оформление заказа - JoyBox{% endblock %}
+
+{% block extra_css %}
+<style>
+    .checkout-page { padding: 40px 0; min-height: calc(100vh - 200px); }
+    .checkout-page h1 { color: var(--primary-color); font-weight: 700; margin-bottom: 28px; }
+    .checkout-layout { display: grid; grid-template-columns: 1fr 420px; gap: 32px; align-items: start; }
+    @media (max-width: 992px) { .checkout-layout { grid-template-columns: 1fr; } }
+    .checkout-summary {
+        background: var(--bg-card, #fff);
+        border-radius: 12px;
+        padding: 24px;
+        border: 1px solid var(--border-muted, #eee);
+        box-shadow: 0 4px 15px rgba(0,0,0,0.06);
+    }
+    .checkout-summary h2 { font-size: 18px; margin-bottom: 16px; color: var(--text-dark); }
+    .checkout-items { max-height: 320px; overflow-y: auto; }
+    .checkout-item { display: flex; justify-content: space-between; padding: 10px 0; border-bottom: 1px solid var(--border-muted, #eee); font-size: 14px; }
+    .checkout-item:last-child { border-bottom: none; }
+    .checkout-total { margin-top: 16px; padding-top: 16px; border-top: 2px solid var(--border-muted); font-weight: 700; font-size: 18px; color: var(--primary-color); display: flex; justify-content: space-between; }
+    .checkout-form-box {
+        background: var(--bg-card, #fff);
+        border-radius: 12px;
+        padding: 24px;
+        border: 1px solid var(--border-muted, #eee);
+        box-shadow: 0 4px 15px rgba(0,0,0,0.06);
+    }
+    .checkout-form-box h2 { font-size: 18px; margin-bottom: 20px; color: var(--text-dark); }
+    .form-group { margin-bottom: 18px; }
+    .form-group label { display: block; font-weight: 600; margin-bottom: 8px; color: var(--text-dark); }
+    .form-group input, .form-group select, .form-group textarea {
+        width: 100%;
+        padding: 12px 14px;
+        border: 1px solid var(--border-muted, #ddd);
+        border-radius: 8px;
+        font-size: 15px;
+        background: var(--bg-light, #fff);
+        color: var(--text-dark);
+    }
+    .form-group textarea { min-height: 80px; resize: vertical; }
+    .form-group input:focus, .form-group select:focus, .form-group textarea:focus {
+        outline: none;
+        border-color: var(--primary-color);
+    }
+    .radio-group { display: flex; flex-direction: column; gap: 10px; }
+    .radio-group label { display: flex; align-items: center; gap: 10px; cursor: pointer; font-weight: 500; }
+    .radio-group input[type="radio"] { width: auto; }
+    .delivery-block { margin-bottom: 20px; padding: 16px; background: var(--bg-content, #f8f9fa); border-radius: 8px; border: 1px solid var(--border-muted); }
+    .pickup-address-fixed { font-size: 15px; color: var(--text-dark); padding: 12px 0; }
+    .new-address-fields { margin-top: 12px; padding: 16px; background: var(--bg-content, #f8f9fa); border-radius: 8px; border: 1px solid var(--border-muted); }
+    .sdek-list { max-height: 300px; overflow-y: auto; margin-top: 12px; }
+    .sdek-point-item { padding: 12px; border: 1px solid var(--border-muted); border-radius: 8px; margin-bottom: 8px; cursor: pointer; background: var(--bg-card, #fff); }
+    .sdek-point-item:hover, .sdek-point-item.selected { border-color: var(--primary-color); background: rgba(220,38,38,0.08); }
+    .sdek-point-item strong { display: block; margin-bottom: 4px; }
+    .sdek-point-item span { font-size: 13px; color: var(--text-light); }
+    .btn-submit-order {
+        width: 100%;
+        padding: 16px;
+        background: linear-gradient(135deg, var(--primary-color), #b91c1c);
+        color: white;
+        border: none;
+        border-radius: 10px;
+        font-weight: 700;
+        font-size: 17px;
+        cursor: pointer;
+        margin-top: 20px;
+        transition: all 0.2s;
+    }
+    .btn-submit-order:hover { opacity: 0.95; transform: translateY(-2px); }
+    .btn-submit-order:disabled { opacity: 0.6; cursor: not-allowed; transform: none; }
+    .error-message { color: #dc3545; background: #fdf2f2; padding: 12px; border-radius: 8px; margin-bottom: 16px; display: none; }
+    #checkoutContent { min-height: 200px; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="checkout-page container">
+    <h1><i class="fas fa-receipt me-2"></i>Оформление заказа</h1>
+    <div id="checkoutContent">
+        <p>Загрузка...</p>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+<script>
+(function() {
+    const authToken = localStorage.getItem('authToken');
+    const content = document.getElementById('checkoutContent');
+    if (!authToken) {
+        content.innerHTML = '<p>Войдите в аккаунт для оформления заказа.</p><a href="/login/?next=/checkout/" class="btn btn-custom">Войти</a>';
+        return;
+    }
+    const headers = { 'Authorization': 'Token ' + authToken };
+    const DELIVERY_PICKUP = 'самовывоз';
+    const DELIVERY_POINT = 'пункт выдачи';
+    const DELIVERY_COURIER = 'курьером';
+
+    function escapeHtml(s) {
+        if (s == null) return '';
+        return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+    }
+    function formatPrice(n) { return Number(n).toLocaleString('ru-RU') + ' ₽'; }
+
+    var cartData = null, addresses = [], deliveryOptions = [], paymentOptionsAll = [], sdekPoints = [];
+    var selectedSdekPoint = null;
+
+    function loadAll() {
+        Promise.all([
+            fetch('/api/auth/cart/', { headers: headers }).then(function(r) {
+                if (r.status === 403 || r.status === 401) return null;
+                return r.ok ? r.json() : null;
+            }),
+            fetch('/api/auth/addresses/', { headers: headers }).then(function(r) { return r.ok ? r.json() : []; }),
+            fetch('/api/auth/checkout/delivery-options/', { headers: headers }).then(function(r) { return r.ok ? r.json() : []; }),
+            fetch('/api/auth/checkout/payment-options/', { headers: headers }).then(function(r) { return r.ok ? r.json() : []; }),
+            fetch('/api/auth/checkout/sdek-points/', { headers: headers }).then(function(r) { return r.ok ? r.json() : []; })
+        ]).then(function([cart, addrs, delOpts, payOpts, sdek]) {
+            cartData = cart;
+            addresses = Array.isArray(addrs) ? addrs : [];
+            deliveryOptions = Array.isArray(delOpts) ? delOpts : [];
+            paymentOptionsAll = Array.isArray(payOpts) ? payOpts : [];
+            sdekPoints = Array.isArray(sdek) ? sdek : [];
+            if (!cartData || !cartData.items || cartData.items.length === 0) {
+                content.innerHTML = '<p>Корзина пуста. Добавьте товары перед оформлением заказа.</p><a href="/catalog/" class="btn btn-custom">В каталог</a>';
+                return;
+            }
+            if (cartData.detail && cartData.detail.indexOf('покупателям') !== -1) {
+                content.innerHTML = '<p>Оформление заказов доступно только покупателям.</p><a href="/cart/" class="btn btn-custom">В корзину</a>';
+                return;
+            }
+            renderCheckout();
+        }).catch(function() {
+            content.innerHTML = '<p>Ошибка загрузки данных.</p>';
+        });
+    }
+
+    function getPaymentOptions(deliveryType) {
+        if (deliveryType === DELIVERY_POINT) {
+            return [{ value: 'онлайн', label: 'Онлайн' }];
+        }
+        return paymentOptionsAll;
+    }
+
+    function renderAddressBlock(deliveryType) {
+        if (deliveryType === DELIVERY_PICKUP) {
+            return '<div class="delivery-block"><div class="pickup-address-fixed"><strong>Адрес самовывоза:</strong><br>Театральный проезд, 5с1, Москва, 109012</div></div>';
+        }
+        if (deliveryType === DELIVERY_POINT) {
+            var listHtml = '<div class="form-group"><label>Выберите пункт выдачи СДЭК из списка</label>';
+            listHtml += '<div class="sdek-list" id="sdekList">';
+            sdekPoints.forEach(function(p, i) {
+                var addr = (p.city || '') + ', ' + (p.street || '') + ', ' + (p.house || '') + ', ' + (p.index || '');
+                listHtml += '<div class="sdek-point-item" data-index="' + i + '" data-code="' + escapeHtml(p.code || '') + '"><strong>' + escapeHtml(p.name || '') + '</strong><span>' + escapeHtml(addr) + '</span></div>';
+            });
+            listHtml += '</div></div>';
+            return '<div class="delivery-block">' + listHtml + '</div>';
+        }
+        var addrOptions = '';
+        addresses.forEach(function(a) {
+            var text = (a.city || '') + ', ' + (a.street || '') + ', д. ' + (a.house || '') + (a.flat ? ', кв. ' + a.flat : '') + ', ' + (a.index || '');
+            addrOptions += '<label><input type="radio" name="addressType" value="saved" data-address-id="' + (a.addressId || '') + '"> ' + escapeHtml(text) + '</label>';
+        });
+        var html = '<div class="form-group"><label>Адрес доставки</label><div class="radio-group">';
+        if (addresses.length) html += addrOptions;
+        html += '<label><input type="radio" name="addressType" value="new"' + (addresses.length === 0 ? ' checked' : '') + '> Новый адрес</label></div>';
+        html += '<div id="newAddressFields" class="new-address-fields" style="display:' + (addresses.length === 0 ? 'block' : 'none') + '">';
+        html += '<div class="form-group"><label>Город *</label><input type="text" id="newCity" placeholder="Москва"></div>';
+        html += '<div class="form-group"><label>Улица *</label><input type="text" id="newStreet" placeholder="ул. Примерная"></div>';
+        html += '<div class="form-group"><label>Дом *</label><input type="text" id="newHouse" placeholder="1"></div>';
+        html += '<div class="form-group"><label>Квартира</label><input type="text" id="newFlat" placeholder="1"></div>';
+        html += '<div class="form-group"><label>Индекс *</label><input type="text" id="newIndex" placeholder="123456" maxlength="6"></div></div></div>';
+        return html;
+    }
+
+    function renderPaymentRadios(deliveryType) {
+        var opts = getPaymentOptions(deliveryType);
+        var html = '';
+        opts.forEach(function(o, i) {
+            html += '<label><input type="radio" name="paymentType" value="' + escapeHtml(o.value) + '"' + (i === 0 ? ' checked' : '') + '> ' + escapeHtml(o.label) + '</label>';
+        });
+        return html;
+    }
+
+    function updatePaymentBlock(deliveryType) {
+        var container = document.getElementById('paymentOptionsContainer');
+        if (!container) return;
+        container.innerHTML = renderPaymentRadios(deliveryType);
+    }
+
+    function updateAddressBlockContainer(deliveryType) {
+        var container = document.getElementById('addressBlockContainer');
+        if (!container) return;
+        container.innerHTML = renderAddressBlock(deliveryType);
+        if (deliveryType === DELIVERY_POINT) {
+            document.querySelectorAll('.sdek-point-item').forEach(function(el) {
+                el.addEventListener('click', function() {
+                    var i = parseInt(this.getAttribute('data-index'), 10);
+                    selectSdekPoint(i);
+                });
+            });
+        } else if (deliveryType === DELIVERY_COURIER) {
+            document.querySelectorAll('input[name="addressType"]').forEach(function(radio) {
+                radio.addEventListener('change', function() {
+                    var newFields = document.getElementById('newAddressFields');
+                    if (newFields) newFields.style.display = this.value === 'new' ? 'block' : 'none';
+                });
+            });
+        }
+    }
+
+    function selectSdekPoint(index) {
+        selectedSdekPoint = sdekPoints[index] || null;
+        document.querySelectorAll('.sdek-point-item').forEach(function(el) {
+            el.classList.toggle('selected', parseInt(el.getAttribute('data-index'), 10) === index);
+        });
+    }
+
+    function renderCheckout() {
+        var items = cartData.items || [];
+        var total = cartData.total != null ? cartData.total : '0';
+        var summaryHtml = '<div class="checkout-summary"><h2>Состав заказа</h2><div class="checkout-items">';
+        items.forEach(function(it) {
+            var name = escapeHtml(it.productName || 'Товар');
+            var qty = it.quantity || 1;
+            var lineTotal = it.lineTotal != null ? formatPrice(it.lineTotal) : '';
+            summaryHtml += '<div class="checkout-item"><span>' + name + ' × ' + qty + '</span><span>' + lineTotal + '</span></div>';
+        });
+        summaryHtml += '</div><div class="checkout-total"><span>Итого</span><span id="checkoutTotal">' + formatPrice(total) + '</span></div></div>';
+
+        var deliveryRadios = '';
+        deliveryOptions.forEach(function(o, i) {
+            deliveryRadios += '<label><input type="radio" name="deliveryType" value="' + escapeHtml(o.value) + '"' + (i === 0 ? ' checked' : '') + '> ' + escapeHtml(o.label) + '</label>';
+        });
+
+        var initialDelivery = deliveryOptions.length ? deliveryOptions[0].value : DELIVERY_PICKUP;
+        var formHtml = '<div class="checkout-form-box">';
+        formHtml += '<div id="checkoutError" class="error-message"></div>';
+        formHtml += '<h2>1. Способ доставки</h2><div class="form-group"><div class="radio-group">' + deliveryRadios + '</div></div>';
+        formHtml += '<h2>2. Адрес</h2><div id="addressBlockContainer">' + renderAddressBlock(initialDelivery) + '</div>';
+        formHtml += '<h2>3. Способ оплаты</h2><div class="form-group"><div class="radio-group" id="paymentOptionsContainer">' + renderPaymentRadios(initialDelivery) + '</div></div>';
+        formHtml += '<div class="form-group"><label>Комментарий к заказу</label><textarea id="checkoutNote" placeholder="Необязательно"></textarea></div>';
+        formHtml += '<button type="button" class="btn-submit-order" id="btnSubmitOrder">Оформить заказ</button></div>';
+
+        content.innerHTML = '<div class="checkout-layout">' + summaryHtml + formHtml + '</div>';
+
+        document.querySelectorAll('input[name="deliveryType"]').forEach(function(radio) {
+            radio.addEventListener('change', function() {
+                var v = this.value;
+                selectedSdekPoint = null;
+                updateAddressBlockContainer(v);
+                updatePaymentBlock(v);
+            });
+        });
+        if (initialDelivery === DELIVERY_POINT) {
+            document.querySelectorAll('.sdek-point-item').forEach(function(el) {
+                el.addEventListener('click', function() { selectSdekPoint(parseInt(this.getAttribute('data-index'), 10)); });
+            });
+        } else if (initialDelivery === DELIVERY_COURIER) {
+            document.querySelectorAll('input[name="addressType"]').forEach(function(radio) {
+                radio.addEventListener('change', function() {
+                    var newFields = document.getElementById('newAddressFields');
+                    if (newFields) newFields.style.display = this.value === 'new' ? 'block' : 'none';
+                });
+            });
+        }
+        document.getElementById('btnSubmitOrder').addEventListener('click', submitOrder);
+    }
+
+    function submitOrder() {
+        var errEl = document.getElementById('checkoutError');
+        errEl.style.display = 'none';
+        errEl.textContent = '';
+        var deliveryType = document.querySelector('input[name="deliveryType"]:checked').value;
+        var payload = {
+            deliveryType: deliveryType,
+            paymentType: document.querySelector('input[name="paymentType"]:checked').value,
+            note: (document.getElementById('checkoutNote') && document.getElementById('checkoutNote').value) || ''
+        };
+        if (deliveryType === DELIVERY_PICKUP) {
+            // адрес не передаём — бэкенд подставит самовывоз
+        } else if (deliveryType === DELIVERY_POINT) {
+            if (!selectedSdekPoint) {
+                errEl.textContent = 'Выберите пункт выдачи СДЭК на карте или в списке.';
+                errEl.style.display = 'block';
+                return;
+            }
+            payload.newAddress = {
+                city: selectedSdekPoint.city || '',
+                street: selectedSdekPoint.street || '',
+                house: selectedSdekPoint.house || '',
+                flat: '',
+                index: selectedSdekPoint.index || ''
+            };
+        } else {
+            var addressType = document.querySelector('input[name="addressType"]:checked');
+            if (!addressType) {
+                errEl.textContent = 'Выберите адрес доставки.';
+                errEl.style.display = 'block';
+                return;
+            }
+            if (addressType.value === 'saved') {
+                var id = addressType.getAttribute('data-address-id');
+                if (!id) {
+                    errEl.textContent = 'Выберите сохранённый адрес.';
+                    errEl.style.display = 'block';
+                    return;
+                }
+                payload.addressId = parseInt(id, 10);
+            } else {
+                var city = document.getElementById('newCity').value.trim();
+                var street = document.getElementById('newStreet').value.trim();
+                var house = document.getElementById('newHouse').value.trim();
+                var index = document.getElementById('newIndex').value.trim();
+                if (!city || !street || !house || !index) {
+                    errEl.textContent = 'Заполните все обязательные поля адреса (город, улица, дом, индекс).';
+                    errEl.style.display = 'block';
+                    return;
+                }
+                payload.newAddress = { city: city, street: street, house: house, flat: (document.getElementById('newFlat').value || '').trim() || null, index: index };
+            }
+        }
+        var btn = document.getElementById('btnSubmitOrder');
+        btn.disabled = true;
+        btn.textContent = 'Оформление...';
+        fetch('/api/auth/checkout/create/', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'Authorization': 'Token ' + authToken },
+            body: JSON.stringify(payload)
+        })
+        .then(function(r) { return r.json().then(function(body) { return { status: r.status, body: body }; }); })
+        .then(function(res) {
+            if (res.status === 201) {
+                var orderId = res.body.orderId || '';
+                var paymentType = payload.paymentType;
+                if (paymentType === 'онлайн') {
+                    window.location.href = '/payment/?orderId=' + orderId;
+                } else {
+                    window.location.href = '/orders/?order=' + orderId;
+                }
+                return;
+            }
+            btn.disabled = false;
+            btn.textContent = 'Оформить заказ';
+            var msg = (res.body.detail && (typeof res.body.detail === 'string' ? res.body.detail : JSON.stringify(res.body.detail))) || (res.body.paymentType && res.body.paymentType[0]) || 'Не удалось оформить заказ.';
+            errEl.textContent = msg;
+            errEl.style.display = 'block';
+        })
+        .catch(function() {
+            btn.disabled = false;
+            btn.textContent = 'Оформить заказ';
+            errEl.textContent = 'Ошибка сети. Попробуйте позже.';
+            errEl.style.display = 'block';
+        });
+    }
+
+    loadAll();
+})();
+</script>
+{% endblock %}

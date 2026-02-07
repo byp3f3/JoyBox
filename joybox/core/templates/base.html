@@ -1,0 +1,647 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}JoyBox - Магазин игрушек{% endblock %}</title>
+    <script>
+        (function() {
+            var stored = localStorage.getItem('joybox-theme');
+            var prefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+            var theme = stored === 'dark' || stored === 'light' ? stored : (prefersDark ? 'dark' : 'light');
+            document.documentElement.setAttribute('data-theme', theme);
+        })();
+    </script>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        :root {
+            --primary-color: #dc2626;
+            --gold-color: #f59e0b;
+            --text-dark: #1f2937;
+            --text-light: #6b7280;
+            --bg-light: #f9fafb;
+            --bg-card: #ffffff;
+            --bg-content: #f8f9fa;
+            --border-muted: #e5e7eb;
+        }
+
+        [data-theme="dark"] {
+            --text-dark: #f3f4f6;
+            --text-light: #9ca3af;
+            --bg-light: #111827;
+            --bg-card: #1f2937;
+            --bg-content: #374151;
+            --border-muted: #4b5563;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            color: var(--text-dark);
+            background-color: var(--bg-light);
+            transition: background-color 0.2s ease, color 0.2s ease;
+        }
+
+        .navbar-custom {
+            background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%);
+            box-shadow: 0 2px 10px rgba(220, 38, 38, 0.2);
+        }
+
+        .btn-custom {
+            background: linear-gradient(135deg, var(--primary-color), var(--gold-color));
+            border: none;
+            color: white;
+            padding: 10px 20px;
+            border-radius: 30px;
+            font-weight: 600;
+            transition: all 0.3s ease;
+        }
+
+        .btn-custom:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(220, 38, 38, 0.3);
+            color: white;
+        }
+
+        .section-title {
+            color: var(--primary-color);
+            font-weight: 700;
+            margin-bottom: 2rem;
+            position: relative;
+            font-size: 2rem;
+            letter-spacing: -0.01em;
+        }
+
+        .footer {
+            background: linear-gradient(135deg, #1f2937 0%, #111827 100%);
+            color: white;
+            padding: 60px 0 30px;
+            position: relative;
+            margin-top: auto;
+        }
+
+        .footer::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 4px;
+            background: linear-gradient(90deg, var(--primary-color), var(--gold-color));
+        }
+
+        /* Переключатель темы */
+        #themeToggle {
+            background: transparent;
+            border: 1px solid rgba(255,255,255,0.5);
+            color: white;
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            transition: background 0.2s, border-color 0.2s;
+        }
+        #themeToggle:hover {
+            background: rgba(255,255,255,0.2);
+            border-color: white;
+            color: white;
+        }
+        #themeToggle .icon-dark { display: none; }
+        #themeToggle .icon-light { display: inline-block; }
+        [data-theme="dark"] #themeToggle .icon-dark { display: inline-block; }
+        [data-theme="dark"] #themeToggle .icon-light { display: none; }
+
+        /* Тёмная тема: карточки, контейнеры, формы, таблицы */
+        [data-theme="dark"] .admin-container,
+        [data-theme="dark"] .admin-content,
+        [data-theme="dark"] .stat-card,
+        [data-theme="dark"] .login-container,
+        [data-theme="dark"] .register-container,
+        [data-theme="dark"] .filters-section,
+        [data-theme="dark"] .popular-product-card,
+        [data-theme="dark"] .product-card,
+        [data-theme="dark"] .catalog-container .card,
+        [data-theme="dark"] .profile-card,
+        [data-theme="dark"] .admin-table,
+        [data-theme="dark"] .modal-content {
+            background-color: var(--bg-card) !important;
+            color: var(--text-dark);
+            border-color: var(--border-muted);
+        }
+        [data-theme="dark"] .admin-nav a:not(.active),
+        [data-theme="dark"] .admin-content {
+            background: var(--bg-content) !important;
+            color: var(--text-dark);
+        }
+        [data-theme="dark"] .popular-products-section,
+        [data-theme="dark"] .popular-product-image-container,
+        [data-theme="dark"] .product-detail-container,
+        [data-theme="dark"] .product-info,
+        [data-theme="dark"] .product-description,
+        [data-theme="dark"] .product-attributes,
+        [data-theme="dark"] .review-item {
+            background-color: var(--bg-card) !important;
+            color: var(--text-dark);
+        }
+        [data-theme="dark"] input,
+        [data-theme="dark"] select,
+        [data-theme="dark"] textarea,
+        [data-theme="dark"] .form-control {
+            background-color: var(--bg-content) !important;
+            color: var(--text-dark) !important;
+            border-color: var(--border-muted);
+        }
+        [data-theme="dark"] .table {
+            color: var(--text-dark);
+        }
+        [data-theme="dark"] .table th,
+        [data-theme="dark"] .table thead th,
+        [data-theme="dark"] .admin-table th,
+        [data-theme="dark"] thead th {
+            background-color: var(--bg-content) !important;
+            color: var(--text-dark) !important;
+            border-color: var(--border-muted);
+        }
+        [data-theme="dark"] .table td,
+        [data-theme="dark"] .admin-table td {
+            color: var(--text-dark);
+            border-color: var(--border-muted);
+        }
+        [data-theme="dark"] .table-striped tbody tr:nth-of-type(odd) {
+            background-color: rgba(55, 65, 81, 0.5);
+        }
+        [data-theme="dark"] .admin-table tr:hover {
+            background-color: rgba(55, 65, 81, 0.7) !important;
+        }
+        [data-theme="dark"] .modal-header,
+        [data-theme="dark"] .modal-footer {
+            border-color: var(--border-muted);
+        }
+        [data-theme="dark"] .modal-header h3,
+        [data-theme="dark"] .modal-title {
+            color: var(--text-dark) !important;
+        }
+        [data-theme="dark"] .close {
+            color: var(--text-light) !important;
+        }
+        [data-theme="dark"] .close:hover {
+            color: var(--text-dark) !important;
+        }
+        [data-theme="dark"] hr {
+            border-color: var(--border-muted);
+        }
+        /* Профиль: заголовки, сайдбар, контент, подписи */
+        [data-theme="dark"] .profile-header,
+        [data-theme="dark"] .profile-header h1,
+        [data-theme="dark"] .profile-sidebar,
+        [data-theme="dark"] .profile-content,
+        [data-theme="dark"] .profile-sidebar h3,
+        [data-theme="dark"] .profile-section h2,
+        [data-theme="dark"] .profile-form label,
+        [data-theme="dark"] .profile-nav a,
+        [data-theme="dark"] .user-details h3 {
+            color: var(--text-dark) !important;
+        }
+        [data-theme="dark"] .profile-sidebar,
+        [data-theme="dark"] .profile-content {
+            background-color: var(--bg-card) !important;
+        }
+        [data-theme="dark"] .profile-nav a:hover,
+        [data-theme="dark"] .profile-nav a.active {
+            background: var(--bg-content) !important;
+            color: var(--primary-color) !important;
+        }
+        /* Админ-панель: заголовки секций */
+        [data-theme="dark"] .admin-header h1,
+        [data-theme="dark"] .admin-content h2,
+        [data-theme="dark"] .admin-section h2,
+        [data-theme="dark"] .form-group label {
+            color: var(--text-dark) !important;
+        }
+        /* Каталог: кнопка «Сбросить» */
+        [data-theme="dark"] .btn-clear {
+            background-color: var(--bg-content) !important;
+            color: var(--text-dark) !important;
+            border: 1px solid var(--border-muted);
+        }
+        [data-theme="dark"] .btn-clear:hover {
+            background-color: var(--border-muted) !important;
+            color: var(--text-dark) !important;
+        }
+        /* Профиль: блок «Детские аккаунты» / профиль ребенка */
+        [data-theme="dark"] .child-data-display {
+            background-color: var(--bg-card) !important;
+            color: var(--text-dark);
+            border: 1px solid var(--border-muted);
+        }
+        [data-theme="dark"] .child-data-display h3,
+        [data-theme="dark"] .child-data-display h4,
+        [data-theme="dark"] .child-data-display p {
+            color: var(--text-dark) !important;
+        }
+        [data-theme="dark"] .data-row {
+            color: var(--text-dark);
+            border-bottom-color: var(--border-muted);
+        }
+        [data-theme="dark"] .data-row strong,
+        [data-theme="dark"] .data-row span {
+            color: var(--text-dark) !important;
+        }
+        [data-theme="dark"] #children-section,
+        [data-theme="dark"] #children-section p {
+            color: var(--text-dark) !important;
+        }
+
+        /* Баннер согласия на обработку персональных данных */
+        .consent-overlay {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 99998;
+            backdrop-filter: blur(4px);
+            -webkit-backdrop-filter: blur(4px);
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+        .consent-overlay.show {
+            display: block;
+            opacity: 1;
+        }
+        .consent-banner {
+            display: none;
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            z-index: 99999;
+            background: var(--bg-card);
+            border-top: 3px solid var(--primary-color);
+            box-shadow: 0 -8px 40px rgba(0, 0, 0, 0.15);
+            transform: translateY(100%);
+            transition: transform 0.4s cubic-bezier(0.22, 1, 0.36, 1);
+        }
+        .consent-banner.show {
+            display: block;
+            transform: translateY(0);
+        }
+        .consent-inner {
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 28px 24px;
+            display: flex;
+            align-items: flex-start;
+            gap: 20px;
+        }
+        .consent-icon {
+            flex-shrink: 0;
+            width: 48px;
+            height: 48px;
+            background: linear-gradient(135deg, var(--primary-color), var(--gold-color));
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 1.4rem;
+        }
+        .consent-text {
+            flex: 1;
+        }
+        .consent-text h4 {
+            margin: 0 0 8px 0;
+            font-size: 1.1rem;
+            font-weight: 700;
+            color: var(--text-dark);
+        }
+        .consent-text p {
+            margin: 0;
+            font-size: 0.92rem;
+            line-height: 1.6;
+            color: var(--text-light);
+        }
+        .consent-text a {
+            color: var(--primary-color);
+            text-decoration: underline;
+            font-weight: 500;
+        }
+        .consent-text a:hover {
+            color: var(--gold-color);
+        }
+        .consent-buttons {
+            flex-shrink: 0;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            align-self: center;
+        }
+        .consent-btn-accept {
+            background: linear-gradient(135deg, var(--primary-color), #b91c1c);
+            color: white;
+            border: none;
+            padding: 12px 32px;
+            border-radius: 30px;
+            font-weight: 600;
+            font-size: 0.95rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            white-space: nowrap;
+        }
+        .consent-btn-accept:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(220, 38, 38, 0.35);
+        }
+        .consent-btn-decline {
+            background: transparent;
+            color: var(--text-light);
+            border: 1px solid var(--border-muted);
+            padding: 10px 32px;
+            border-radius: 30px;
+            font-weight: 500;
+            font-size: 0.88rem;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            white-space: nowrap;
+        }
+        .consent-btn-decline:hover {
+            border-color: var(--text-light);
+            color: var(--text-dark);
+        }
+        @media (max-width: 640px) {
+            .consent-inner {
+                flex-direction: column;
+                align-items: stretch;
+                padding: 20px 16px;
+                gap: 14px;
+            }
+            .consent-icon {
+                display: none;
+            }
+            .consent-buttons {
+                flex-direction: row;
+                align-self: stretch;
+            }
+            .consent-btn-accept,
+            .consent-btn-decline {
+                flex: 1;
+                text-align: center;
+            }
+        }
+
+        {% block extra_css %}{% endblock %}
+    </style>
+</head>
+<body class="d-flex flex-column min-vh-100">
+    <!-- Навигация -->
+    <nav class="navbar navbar-expand-lg navbar-light navbar-custom fixed-top">
+        <div class="container">
+            <a class="navbar-brand text-white" href="{% url 'info_view' %}">
+                <i class="fas fa-gift me-2"></i>JoyBox
+            </a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav me-auto">
+                    <li class="nav-item">
+                        <a class="nav-link text-white {% if request.resolver_match.url_name == 'info_view' %}active{% endif %}" href="{% url 'info_view' %}">Главная</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link text-white {% if request.resolver_match.url_name == 'catalog' %}active{% endif %}" href="{% url 'catalog' %}">Каталог</a>
+                    </li>
+                    <li class="nav-item" id="navWishlist">
+                        <a class="nav-link text-white {% if request.resolver_match.url_name == 'wishlist_page' %}active{% endif %}" href="{% url 'wishlist_page' %}">Список желаний</a>
+                    </li>
+                    <li class="nav-item" id="navCart">
+                        <a class="nav-link text-white {% if request.resolver_match.url_name == 'cart_page' %}active{% endif %}" href="{% url 'cart_page' %}">Корзина</a>
+                    </li>
+                    <li class="nav-item" id="navOrders">
+                        <a class="nav-link text-white {% if request.resolver_match.url_name == 'orders_page' %}active{% endif %}" href="{% url 'orders_page' %}">Мои заказы</a>
+                    </li>
+                </ul>
+                <div class="navbar-nav align-items-center">
+                    <button type="button" id="themeToggle" class="me-2" title="Светлая тема" aria-label="Переключить тему">
+                        <i class="fas fa-moon icon-light"></i>
+                        <i class="fas fa-sun icon-dark"></i>
+                    </button>
+                    <div id="authNav">
+                        <!-- Auth links will be populated by JavaScript -->
+                    </div>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Основной контент -->
+    <main style="margin-top: 80px; margin-bottom: 80px;">
+        {% block content %}{% endblock %}
+    </main>
+
+    <!-- Футер -->
+    <footer class="footer">
+        <div class="container">
+            <div class="row">
+                <div class="col-lg-6 mb-4">
+                    <h5><i class="fas fa-gift me-2"></i>JoyBox</h5>
+                    <p>Магазин игрушек, где каждый ребенок найдет свою мечту. Качество, безопасность и радость в каждом товаре.</p>
+                </div>
+                <div class="col-lg-3 col-md-6 mb-4">
+                    <h6>Каталог</h6>
+                    <ul class="list-unstyled">
+                        <li><a href="#" class="text-light">Конструкторы</a></li>
+                        <li><a href="#" class="text-light">Куклы</a></li>
+                        <li><a href="#" class="text-light">Машинки</a></li>
+                        <li><a href="#" class="text-light">Настольные игры</a></li>
+                    </ul>
+                </div>
+                <div class="col-lg-3 col-md-6 mb-4">
+                    <h6>Помощь</h6>
+                    <ul class="list-unstyled">
+                        <li><a href="#" class="text-light">Доставка</a></li>
+                        <li><a href="#" class="text-light">Оплата</a></li>
+                        <li><a href="#" class="text-light">Возврат</a></li>
+                        <li><a href="#" class="text-light">FAQ</a></li>
+                    </ul>
+                </div>
+            </div>
+            <hr class="my-4">
+            <div class="row align-items-center">
+                <div class="col-md-6">
+                    <p class="mb-0">&copy; 2024 JoyBox. Все права защищены.</p>
+                </div>
+                <div class="col-md-6 text-md-end">
+                    <a href="/privacy/" class="text-light me-3">Политика конфиденциальности</a>
+                    <a href="#" class="text-light">Условия использования</a>
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    <!-- Баннер согласия на обработку персональных данных -->
+    <div class="consent-overlay" id="consentOverlay"></div>
+    <div class="consent-banner" id="consentBanner">
+        <div class="consent-inner">
+            <div class="consent-icon">
+                <i class="fas fa-shield-alt"></i>
+            </div>
+            <div class="consent-text">
+                <h4>Обработка персональных данных</h4>
+                <p>Продолжая использование сайта, вы даёте согласие на обработку персональных данных в соответствии с <a href="/privacy/" target="_blank">Политикой конфиденциальности</a>. Мы обрабатываем данные для предоставления сервисов, оформления заказов и улучшения работы сайта.</p>
+            </div>
+            <div class="consent-buttons">
+                <button class="consent-btn-accept" id="consentAccept">Принимаю</button>
+                <button class="consent-btn-decline" id="consentDecline">Отклонить</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    {% block extra_js %}{% endblock %}
+    <script>
+        // Check authentication status and update navbar
+        document.addEventListener('DOMContentLoaded', function() {
+            const authNav = document.getElementById('authNav');
+            const mainNav = document.querySelector('.navbar-nav.me-auto'); // Main navigation
+            const navWishlist = document.getElementById('navWishlist');
+            const navCart = document.getElementById('navCart');
+            const navOrders = document.getElementById('navOrders');
+            const authToken = localStorage.getItem('authToken');
+            
+            // Скрываем разделы, требующие авторизации, по умолчанию
+            function hideAuthNavItems() {
+                if (navWishlist) navWishlist.style.display = 'none';
+                if (navCart) navCart.style.display = 'none';
+                if (navOrders) navOrders.style.display = 'none';
+            }
+            
+            hideAuthNavItems();
+            
+            if (authToken) {
+                // User is logged in, check their role
+                fetch('/api/auth/profile/', {
+                    headers: {
+                        'Authorization': `Token ${authToken}`
+                    }
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.roleName === 'Администратор' || data.roleName === 'Менеджер') {
+                        // Show admin panel link for admin/manager users
+                        authNav.innerHTML = `
+                            <a class="btn btn-light me-2" href="/admin-panel/">Панель администратора</a>
+                            <a class="btn btn-light me-2" href="/profile/">Профиль</a>
+                            <button class="btn btn-outline-light" onclick="logout()">Выйти</button>
+                        `;
+                        // Hide main page and catalog links for admin/manager
+                        if (mainNav) {
+                            mainNav.style.display = 'none';
+                        }
+                        // Only redirect to admin panel if we're not already on the admin panel page
+                        if (window.location.pathname !== '/admin-panel/' && 
+                            window.location.pathname !== '/profile/') {
+                            window.location.href = '/admin-panel/';
+                        }
+                    } else if (data.roleName === 'Ребенок') {
+                        // Ребёнок: только каталог, список желаний и профиль (без корзины и заказов)
+                        if (navWishlist) navWishlist.style.display = '';
+                        authNav.innerHTML = `
+                            <a class="btn btn-light me-2" href="/profile/">Профиль</a>
+                            <button class="btn btn-outline-light" onclick="logout()">Выйти</button>
+                        `;
+                    } else {
+                        // Покупатель: показываем все разделы
+                        if (navWishlist) navWishlist.style.display = '';
+                        if (navCart) navCart.style.display = '';
+                        if (navOrders) navOrders.style.display = '';
+                        authNav.innerHTML = `
+                            <a class="btn btn-light me-2" href="/profile/">Профиль</a>
+                            <button class="btn btn-outline-light" onclick="logout()">Выйти</button>
+                        `;
+                    }
+                })
+                .catch(error => {
+                    // If there's an error fetching profile, remove the token and redirect to login
+                    localStorage.removeItem('authToken');
+                    hideAuthNavItems();
+                    authNav.innerHTML = `
+                        <a class="btn btn-light me-2" href="/login/">Вход</a>
+                        <a class="btn btn-outline-light" href="/register/">Регистрация</a>
+                    `;
+                });
+            } else {
+                // User is not logged in
+                hideAuthNavItems();
+                authNav.innerHTML = `
+                    <a class="btn btn-light me-2" href="/login/">Вход</a>
+                    <a class="btn btn-outline-light" href="/register/">Регистрация</a>
+                `;
+            }
+        });
+        
+        // Logout function
+        function logout() {
+            localStorage.removeItem('authToken');
+            window.location.href = '/';
+        }
+
+        // Переключение светлой/тёмной темы (сохраняется в localStorage на всём сайте)
+        (function() {
+            var toggle = document.getElementById('themeToggle');
+            if (!toggle) return;
+            function updateTitle() {
+                var theme = document.documentElement.getAttribute('data-theme');
+                toggle.setAttribute('title', theme === 'dark' ? 'Светлая тема' : 'Тёмная тема');
+            }
+            toggle.addEventListener('click', function() {
+                var theme = document.documentElement.getAttribute('data-theme');
+                var next = theme === 'dark' ? 'light' : 'dark';
+                document.documentElement.setAttribute('data-theme', next);
+                localStorage.setItem('joybox-theme', next);
+                updateTitle();
+            });
+            updateTitle();
+        })();
+
+        // Баннер согласия на обработку персональных данных
+        (function() {
+            var accepted = localStorage.getItem('joybox-consent');
+            if (accepted) return; // Уже подтверждено
+
+            // Не показываем баннер на странице политики конфиденциальности
+            if (window.location.pathname === '/privacy/') return;
+
+            var banner = document.getElementById('consentBanner');
+            var overlay = document.getElementById('consentOverlay');
+            if (!banner || !overlay) return;
+
+            // Показываем баннер с небольшой задержкой для плавности
+            setTimeout(function() {
+                overlay.classList.add('show');
+                banner.classList.add('show');
+            }, 500);
+
+            function hideBanner() {
+                banner.classList.remove('show');
+                overlay.classList.remove('show');
+                setTimeout(function() {
+                    banner.style.display = 'none';
+                    overlay.style.display = 'none';
+                }, 400);
+            }
+
+            document.getElementById('consentAccept').addEventListener('click', function() {
+                localStorage.setItem('joybox-consent', 'accepted');
+                hideBanner();
+            });
+
+            document.getElementById('consentDecline').addEventListener('click', function() {
+                localStorage.setItem('joybox-consent', 'declined');
+                hideBanner();
+            });
+        })();
+    </script>
+</body>
+</html>

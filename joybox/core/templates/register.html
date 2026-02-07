@@ -1,0 +1,290 @@
+{% extends 'base.html' %}
+
+{% block title %}Регистрация - JoyBox{% endblock %}
+
+{% block extra_css %}
+<style>
+    .register-page {
+        padding: 40px 0;
+        min-height: calc(100vh - 200px);
+        display: flex;
+        align-items: center;
+    }
+    
+    .register-container {
+        max-width: 500px;
+        margin: 0 auto;
+        background: white;
+        border-radius: 12px;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+        padding: 40px;
+    }
+    
+    .register-header {
+        text-align: center;
+        margin-bottom: 30px;
+    }
+    
+    .register-header h1 {
+        color: var(--primary-color);
+        font-weight: 700;
+        margin-bottom: 10px;
+    }
+    
+    .register-form .form-row {
+        display: flex;
+        gap: 15px;
+        margin-bottom: 20px;
+    }
+    
+    .register-form .form-group {
+        margin-bottom: 20px;
+        flex: 1;
+    }
+    
+    .register-form label {
+        display: block;
+        margin-bottom: 8px;
+        font-weight: 500;
+        color: var(--text-dark);
+    }
+    
+    .register-form input {
+        width: 100%;
+        padding: 12px 15px;
+        border: 1px solid #ddd;
+        border-radius: 8px;
+        font-size: 16px;
+        transition: all 0.3s ease;
+    }
+    
+    .register-form input:focus {
+        outline: none;
+        border-color: var(--primary-color);
+        box-shadow: 0 0 0 3px rgba(220, 38, 38, 0.1);
+    }
+    
+    .btn-register {
+        width: 100%;
+        background: linear-gradient(135deg, var(--primary-color), #b91c1c);
+        color: white;
+        border: none;
+        padding: 14px;
+        border-radius: 8px;
+        font-weight: 600;
+        font-size: 16px;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        margin-top: 10px;
+    }
+    
+    .btn-register:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(220, 38, 38, 0.3);
+    }
+    
+    .register-footer {
+        text-align: center;
+        margin-top: 25px;
+        color: var(--text-light);
+    }
+    
+    .register-footer a {
+        color: var(--primary-color);
+        text-decoration: none;
+        font-weight: 600;
+    }
+    
+    .register-footer a:hover {
+        text-decoration: underline;
+    }
+    
+    .error-message {
+        color: #e74c3c;
+        background: #fdf2f2;
+        border: 1px solid #f5c6cb;
+        border-radius: 8px;
+        padding: 12px;
+        margin-bottom: 20px;
+        display: none;
+    }
+    
+    .loading-spinner {
+        border: 3px solid rgba(0, 0, 0, 0.1);
+        border-left-color: white;
+        border-radius: 50%;
+        width: 20px;
+        height: 20px;
+        animation: spin 1s linear infinite;
+        display: none;
+        margin: 0 auto;
+    }
+    
+    @keyframes spin {
+        to { transform: rotate(360deg); }
+    }
+    
+    @media (max-width: 768px) {
+        .register-form .form-row {
+            flex-direction: column;
+            gap: 0;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="register-page">
+    <div class="register-container">
+        <div class="register-header">
+            <h1>Регистрация</h1>
+            <p>Создайте аккаунт для покупок</p>
+        </div>
+        
+        <div class="error-message" id="errorMessage"></div>
+        
+        <form class="register-form" id="registerForm">
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="firstName">Имя</label>
+                    <input type="text" id="firstName" name="firstName" required>
+                </div>
+                
+                <div class="form-group">
+                    <label for="lastName">Фамилия</label>
+                    <input type="text" id="lastName" name="lastName" required>
+                </div>
+            </div>
+            
+            <div class="form-group">
+                <label for="middleName">Отчество (необязательно)</label>
+                <input type="text" id="middleName" name="middleName">
+            </div>
+            
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="email">Email</label>
+                    <input type="email" id="email" name="email" required>
+                </div>
+                
+                <div class="form-group">
+                    <label for="phone">Телефон</label>
+                    <input type="tel" id="phone" name="phone" required>
+                </div>
+            </div>
+            
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="birthDate">Дата рождения</label>
+                    <input type="date" id="birthDate" name="birthDate" required>
+                </div>
+            </div>
+            
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="password">Пароль</label>
+                    <input type="password" id="password" name="password" required minlength="8">
+                </div>
+                
+                <div class="form-group">
+                    <label for="confirmPassword">Подтвердите пароль</label>
+                    <input type="password" id="confirmPassword" name="confirmPassword" required minlength="8">
+                </div>
+            </div>
+            
+            <button type="submit" class="btn-register" id="registerButton">
+                <span id="buttonText">Зарегистрироваться</span>
+                <div class="loading-spinner" id="registerSpinner"></div>
+            </button>
+        </form>
+        
+        <div class="register-footer">
+            <p>Уже есть аккаунт? <a href="{% url 'login_page' %}">Войдите</a></p>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    document.getElementById('registerForm').addEventListener('submit', function(e) {
+        e.preventDefault();
+        
+        // Get form data
+        const formData = {
+            firstName: document.getElementById('firstName').value,
+            lastName: document.getElementById('lastName').value,
+            middleName: document.getElementById('middleName').value,
+            email: document.getElementById('email').value,
+            phone: document.getElementById('phone').value,
+            birthDate: document.getElementById('birthDate').value,
+            password: document.getElementById('password').value,
+            confirmPassword: document.getElementById('confirmPassword').value
+        };
+        
+        const errorMessage = document.getElementById('errorMessage');
+        const registerButton = document.getElementById('registerButton');
+        const buttonText = document.getElementById('buttonText');
+        const registerSpinner = document.getElementById('registerSpinner');
+        
+        // Hide previous errors
+        errorMessage.style.display = 'none';
+        
+        // Validate passwords match
+        if (formData.password !== formData.confirmPassword) {
+            errorMessage.textContent = 'Пароли не совпадают';
+            errorMessage.style.display = 'block';
+            return;
+        }
+        
+        // Show loading state
+        buttonText.style.display = 'none';
+        registerSpinner.style.display = 'block';
+        registerButton.disabled = true;
+        
+        // Send registration request
+        fetch('/api/auth/register/', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(formData)
+        })
+        .then(response => {
+            if (!response.ok) {
+                return response.json().then(data => {
+                    let errorMessageText = 'Ошибка регистрации';
+                    if (data.email) {
+                        errorMessageText = data.email[0];
+                    } else if (data.phone) {
+                        errorMessageText = data.phone[0];
+                    } else if (data.password) {
+                        errorMessageText = data.password[0];
+                    } else if (data.non_field_errors) {
+                        errorMessageText = data.non_field_errors[0];
+                    }
+                    throw new Error(errorMessageText);
+                });
+            }
+            return response.json();
+        })
+        .then(data => {
+            // Store token in localStorage
+            localStorage.setItem('authToken', data.token);
+            
+            // Redirect to profile or home page
+            window.location.href = '/';
+        })
+        .catch(error => {
+            // Show error message
+            errorMessage.textContent = error.message;
+            errorMessage.style.display = 'block';
+            
+            // Reset button
+            buttonText.style.display = 'block';
+            registerSpinner.style.display = 'none';
+            registerButton.disabled = false;
+        });
+    });
+</script>
+{% endblock %}

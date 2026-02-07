@@ -1,0 +1,213 @@
+{% extends 'base.html' %}
+
+{% block title %}Оплата заказа - JoyBox{% endblock %}
+
+{% block extra_css %}
+<style>
+    .payment-page { padding: 40px 0; min-height: calc(100vh - 200px); }
+    .payment-page h1 { color: var(--primary-color); font-weight: 700; margin-bottom: 28px; }
+    .payment-container {
+        max-width: 600px;
+        margin: 0 auto;
+        background: var(--bg-card, #fff);
+        border-radius: 12px;
+        padding: 32px;
+        border: 1px solid var(--border-muted, #eee);
+        box-shadow: 0 4px 15px rgba(0,0,0,0.06);
+    }
+    .order-summary {
+        background: var(--bg-content, #f8f9fa);
+        padding: 20px;
+        border-radius: 8px;
+        margin-bottom: 24px;
+    }
+    .order-summary h3 { font-size: 18px; margin-bottom: 12px; color: var(--text-dark); }
+    .order-summary p { margin: 6px 0; color: var(--text-light); }
+    .order-summary .total { font-weight: 700; font-size: 20px; color: var(--primary-color); margin-top: 12px; }
+    .form-group { margin-bottom: 20px; }
+    .form-group label { display: block; font-weight: 600; margin-bottom: 8px; color: var(--text-dark); }
+    .form-group input {
+        width: 100%;
+        padding: 12px 14px;
+        border: 1px solid var(--border-muted, #ddd);
+        border-radius: 8px;
+        font-size: 15px;
+        background: var(--bg-light, #fff);
+        color: var(--text-dark);
+    }
+    .form-group input:focus { outline: none; border-color: var(--primary-color); }
+    .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+    .form-row-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px; }
+    .btn-pay {
+        width: 100%;
+        padding: 16px;
+        background: linear-gradient(135deg, var(--primary-color), #b91c1c);
+        color: white;
+        border: none;
+        border-radius: 10px;
+        font-weight: 700;
+        font-size: 17px;
+        cursor: pointer;
+        margin-top: 20px;
+        transition: all 0.2s;
+    }
+    .btn-pay:hover { opacity: 0.95; transform: translateY(-2px); }
+    .btn-pay:disabled { opacity: 0.6; cursor: not-allowed; transform: none; }
+    .error-message { color: #dc3545; background: #fdf2f2; padding: 12px; border-radius: 8px; margin-bottom: 16px; display: none; }
+    .success-message { color: #155724; background: #d4edda; padding: 12px; border-radius: 8px; margin-bottom: 16px; }
+    #paymentContent { min-height: 200px; }
+    @media (max-width: 576px) {
+        .form-row, .form-row-3 { grid-template-columns: 1fr; }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="payment-page container">
+    <h1><i class="fas fa-credit-card me-2"></i>Оплата заказа</h1>
+    <div id="paymentContent">
+        <p>Загрузка...</p>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+(function() {
+    const authToken = localStorage.getItem('authToken');
+    const content = document.getElementById('paymentContent');
+    if (!authToken) {
+        content.innerHTML = '<p>Войдите в аккаунт для оплаты заказа.</p><a href="/login/" class="btn btn-custom">Войти</a>';
+        return;
+    }
+    const headers = { 'Authorization': 'Token ' + authToken };
+    function escapeHtml(s) {
+        if (s == null) return '';
+        return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+    }
+    function formatPrice(n) { return Number(n).toLocaleString('ru-RU') + ' ₽'; }
+
+    var urlParams = new URLSearchParams(window.location.search);
+    var orderId = urlParams.get('orderId');
+    if (!orderId) {
+        content.innerHTML = '<p>Не указан номер заказа.</p><a href="/orders/" class="btn btn-custom">Мои заказы</a>';
+        return;
+    }
+
+    function loadOrder() {
+        fetch('/api/auth/orders/' + orderId + '/', { headers: headers })
+        .then(function(r) {
+            if (r.status === 404) {
+                content.innerHTML = '<p>Заказ не найден.</p><a href="/orders/" class="btn btn-custom">Мои заказы</a>';
+                return null;
+            }
+            if (r.status === 403 || r.status === 401) {
+                content.innerHTML = '<p>Доступ запрещён.</p><a href="/login/" class="btn btn-custom">Войти</a>';
+                return null;
+            }
+            if (!r.ok) throw new Error('Ошибка загрузки заказа');
+            return r.json();
+        })
+        .then(function(order) {
+            if (order === null) return;
+            if (order.paymentStatus === 'оплачено') {
+                content.innerHTML = '<div class="payment-container"><div class="success-message">Заказ уже оплачен.</div><a href="/orders/?order=' + orderId + '" class="btn btn-custom">Перейти к заказу</a></div>';
+                return;
+            }
+            if (order.paymentType !== 'онлайн') {
+                content.innerHTML = '<div class="payment-container"><p>Этот заказ не предназначен для онлайн-оплаты.</p><a href="/orders/?order=' + orderId + '" class="btn btn-custom">Перейти к заказу</a></div>';
+                return;
+            }
+            renderPaymentForm(order);
+        })
+        .catch(function() {
+            content.innerHTML = '<p>Ошибка загрузки данных заказа.</p>';
+        });
+    }
+
+    function renderPaymentForm(order) {
+        var html = '<div class="payment-container">';
+        html += '<div class="order-summary">';
+        html += '<h3>Заказ №' + order.orderId + '</h3>';
+        html += '<p>Сумма к оплате: <span class="total">' + formatPrice(order.total) + '</span></p>';
+        html += '<p>Статус: ' + escapeHtml(order.status || '') + '</p>';
+        html += '</div>';
+        html += '<div id="paymentError" class="error-message"></div>';
+        html += '<h3 style="margin-bottom: 20px;">Данные карты</h3>';
+        html += '<form id="paymentForm" onsubmit="return false;">';
+        html += '<div class="form-group"><label>Номер карты</label><input type="text" id="cardNumber" placeholder="1234 5678 9012 3456" maxlength="19" required></div>';
+        html += '<div class="form-group"><label>Имя держателя карты</label><input type="text" id="cardHolder" placeholder="IVAN IVANOV" maxlength="100" required></div>';
+        html += '<div class="form-row-3">';
+        html += '<div class="form-group"><label>Месяц</label><input type="number" id="expiryMonth" placeholder="12" min="1" max="12" required></div>';
+        html += '<div class="form-group"><label>Год</label><input type="number" id="expiryYear" placeholder="2025" min="2024" max="2099" required></div>';
+        html += '<div class="form-group"><label>CVV</label><input type="text" id="cvv" placeholder="123" maxlength="4" minlength="3" required></div>';
+        html += '</div>';
+        html += '<button type="button" class="btn-pay" id="btnPay">Оплатить ' + formatPrice(order.total) + '</button>';
+        html += '</form></div>';
+        content.innerHTML = html;
+
+        document.getElementById('cardNumber').addEventListener('input', function(e) {
+            var v = e.target.value.replace(/\s/g, '').replace(/\D/g, '');
+            var formatted = v.match(/.{1,4}/g)?.join(' ') || v;
+            e.target.value = formatted;
+        });
+
+        document.getElementById('btnPay').addEventListener('click', processPayment);
+    }
+
+    function processPayment() {
+        var errEl = document.getElementById('paymentError');
+        errEl.style.display = 'none';
+        errEl.textContent = '';
+        var cardNumber = document.getElementById('cardNumber').value.replace(/\s/g, '');
+        var cardHolder = document.getElementById('cardHolder').value.trim();
+        var expiryMonth = parseInt(document.getElementById('expiryMonth').value, 10);
+        var expiryYear = parseInt(document.getElementById('expiryYear').value, 10);
+        var cvv = document.getElementById('cvv').value.trim();
+        if (!cardNumber || cardNumber.length < 16 || !cardHolder || !expiryMonth || !expiryYear || !cvv) {
+            errEl.textContent = 'Заполните все поля корректно.';
+            errEl.style.display = 'block';
+            return;
+        }
+        var btn = document.getElementById('btnPay');
+        btn.disabled = true;
+        btn.textContent = 'Обработка...';
+        fetch('/api/auth/payment/process/', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'Authorization': 'Token ' + authToken },
+            body: JSON.stringify({
+                orderId: parseInt(orderId, 10),
+                cardNumber: cardNumber,
+                cardHolder: cardHolder,
+                expiryMonth: expiryMonth,
+                expiryYear: expiryYear,
+                cvv: cvv
+            })
+        })
+        .then(function(r) { return r.json().then(function(body) { return { status: r.status, body: body }; }); })
+        .then(function(res) {
+            if (res.status === 200) {
+                setTimeout(function() {
+                    window.location.href = '/orders/?order=' + orderId;
+                }, 1500);
+                content.innerHTML = '<div class="payment-container"><div class="success-message">Оплата успешно обработана! Перенаправление на страницу заказов...</div></div>';
+                return;
+            }
+            btn.disabled = false;
+            btn.textContent = 'Оплатить';
+            var msg = (res.body.detail && (typeof res.body.detail === 'string' ? res.body.detail : JSON.stringify(res.body.detail))) || 'Не удалось обработать оплату.';
+            errEl.textContent = msg;
+            errEl.style.display = 'block';
+        })
+        .catch(function() {
+            btn.disabled = false;
+            btn.textContent = 'Оплатить';
+            errEl.textContent = 'Ошибка сети. Попробуйте позже.';
+            errEl.style.display = 'block';
+        });
+    }
+
+    loadOrder();
+})();
+</script>
+{% endblock %}
