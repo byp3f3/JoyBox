@@ -1204,6 +1204,7 @@ class AdminUserDetailView(generics.RetrieveUpdateDestroyAPIView):
             return Response({'detail': 'Нельзя удалить собственный аккаунт.'}, status=400)
         old_values = model_to_log_dict(instance)
         record_id = get_pk(instance)
+        set_audit_user(request.user)  # для триггера аудита в БД
         response = super().destroy(request, *args, **kwargs)
         if response.status_code in (200, 204):
             log_audit(request.user, 'DELETE', 'user', record_id, old_values=old_values, new_values=None)

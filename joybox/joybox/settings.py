@@ -157,6 +157,9 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 # Custom user model
 AUTH_USER_MODEL = 'core.User'
 
+# Кастомный test runner (применяет SQL-схему перед тестами)
+TEST_RUNNER = 'core.test_runner.JoyBoxTestRunner'
+
 # Резервное копирование БД
 BACKUP_DIR = BASE_DIR / config('BACKUP_DIR', default='backups')
 BACKUP_MAX_COUNT = config('BACKUP_MAX_COUNT', default=10, cast=int)

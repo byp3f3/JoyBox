@@ -676,7 +676,7 @@ BEGIN
     -- Получить ID записи и значения
     IF TG_OP = 'DELETE' THEN
         v_old_values := to_jsonb(OLD);
-        v_record_id  := OLD."productId";  -- будет перезаписан ниже для каждой таблицы
+        v_record_id  := 0;  -- будет перезаписан ниже для каждой таблицы
     ELSE
         v_new_values := to_jsonb(NEW);
     END IF;
