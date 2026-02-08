@@ -1,11 +1,6 @@
-"""
-Команда для восстановления базы данных PostgreSQL из резервной копии.
-
-Использование:
-    python manage.py restore_db backups/joybox_test_20260207.backup
-    python manage.py restore_db backups/joybox_test_20260207.sql
-    python manage.py restore_db --latest          # Восстановить из последнего бэкапа
-"""
+# python manage.py restore_db backups/joybox_test_20260207.backup
+# python manage.py restore_db backups/joybox_test_20260207.sql
+# python manage.py restore_db --latest  - Восстановить из последнего бэкапа
 
 import os
 import subprocess
@@ -16,7 +11,6 @@ from django.conf import settings
 
 
 class Command(BaseCommand):
-    help = 'Восстановление базы данных PostgreSQL из резервной копии (pg_restore / psql)'
 
     def add_arguments(self, parser):
         parser.add_argument(
@@ -72,7 +66,6 @@ class Command(BaseCommand):
         ext = backup_path.suffix.lower()
 
         if ext == '.backup':
-            # Custom format — используем pg_restore
             pg_restore = os.path.join(pg_bin, 'pg_restore') if pg_bin else 'pg_restore'
             cmd = [
                 pg_restore,
@@ -82,7 +75,7 @@ class Command(BaseCommand):
                 f'--dbname={db_name}',
                 '--no-password',
                 '--clean',          # DROP объектов перед восстановлением
-                '--if-exists',      # Не ругаться, если объектов нет
+                '--if-exists',      
                 str(backup_path),
             ]
             tool = 'pg_restore'
@@ -137,8 +130,8 @@ class Command(BaseCommand):
             f'База данных «{db_name}» успешно восстановлена из {backup_path.name}.'
         ))
 
+    # Находит последний бэкап в BACKUP_DIR
     def _find_latest(self):
-        """Находит последний бэкап в BACKUP_DIR."""
         backup_dir = Path(settings.BACKUP_DIR)
         if not backup_dir.exists():
             raise CommandError(f'Директория бэкапов не найдена: {backup_dir}')

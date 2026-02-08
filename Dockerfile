@@ -16,7 +16,6 @@ RUN pip install --no-cache-dir -r requirements.txt
 
 COPY . .
 
-# Сохраняем seed-медиа в отдельную папку (volume может перекрыть /app/joybox/media)
 RUN if [ -d /app/joybox/media/products ]; then \
       mkdir -p /app/seed_media && \
       cp -r /app/joybox/media/products /app/seed_media/; \

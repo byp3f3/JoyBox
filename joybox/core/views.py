@@ -105,7 +105,6 @@ class PopularProductsListView(generics.ListAPIView):
     serializer_class = ProductListSerializer
     
     def get_queryset(self):
-        # Get products with at least one review, ordered by average rating and review count
         return Product.objects.filter(
             review__isnull=False
         ).annotate(
@@ -128,7 +127,7 @@ class ProductReviewsListView(generics.ListAPIView):
 
 class UserRegistrationView(generics.CreateAPIView):
     serializer_class = UserRegistrationSerializer
-    permission_classes = [AllowAny]  # Explicitly allow any user to register
+    permission_classes = [AllowAny]  
     
     def create(self, request, *args, **kwargs):
         try:
@@ -150,7 +149,7 @@ class UserRegistrationView(generics.CreateAPIView):
 
 class LoginView(ObtainAuthToken):
     serializer_class = LoginSerializer
-    permission_classes = [AllowAny]  # Explicitly allow any user to login
+    permission_classes = [AllowAny]  
     
     def post(self, request, *args, **kwargs):
         try:
@@ -170,7 +169,6 @@ class LoginView(ObtainAuthToken):
             return Response({'detail': 'Ошибка при входе. Проверьте email и пароль.'}, status=status.HTTP_400_BAD_REQUEST)
 
     def dispatch(self, request, *args, **kwargs):
-        # Ensure we always return JSON, even for errors
         try:
             return super().dispatch(request, *args, **kwargs)
         except DRFValidationError:
@@ -181,35 +179,30 @@ class LoginView(ObtainAuthToken):
 
 class UserProfileView(generics.RetrieveUpdateAPIView):
     serializer_class = UserProfileSerializer
-    permission_classes = [IsAuthenticated]  # Keep this as IsAuthenticated
+    permission_classes = [IsAuthenticated]  
     
     def get_object(self):
         return self.request.user
 
 def info_view(request):
-    # Check if user is admin or manager and redirect to admin panel
     if request.user.is_authenticated:
         if hasattr(request.user, 'roleId') and request.user.roleId.roleName in ['Администратор', 'Менеджер']:
             return redirect('/admin-panel/')
     return render(request, 'info.html')
 
 def catalog_page(request):
-    # Check if user is admin or manager and redirect to admin panel
     if request.user.is_authenticated:
         if hasattr(request.user, 'roleId') and request.user.roleId.roleName in ['Администратор', 'Менеджер']:
             return redirect('/admin-panel/')
     return render(request, 'catalog.html')
 
 def product_detail_page(request, pk):
-    # Check if user is admin or manager and redirect to admin panel
     if request.user.is_authenticated:
         if hasattr(request.user, 'roleId') and request.user.roleId.roleName in ['Администратор', 'Менеджер']:
             return redirect('/admin-panel/')
     return render(request, 'product_detail.html', {'product_id': pk})
 
 def profile_page(request):
-    # Admin and manager users can access their profile
-    # Other users are redirected to admin panel if they try to access other pages
     return render(request, 'profile.html')
 
 def wishlist_page(request):
@@ -236,8 +229,6 @@ def privacy_page(request):
     return render(request, 'privacy.html')
 
 def admin_panel_page(request):
-    # Render the admin panel page regardless of authentication status
-    # Authentication will be handled by the frontend JavaScript
     return render(request, 'admin_panel.html')
 
 def login_page(request):
@@ -252,21 +243,16 @@ class WishlistListView(generics.ListAPIView):
     
     def get_queryset(self):
         user = self.request.user
-        # If user is a parent (Покупатель), include wishlist items for their children
         if user.roleId.roleName == 'Покупатель':
-            # Get children of this parent (ParentChild: userId=parent, childId=child; User.child_relations = ParentChild where this user is child)
             children = User.objects.filter(child_relations__userId=user)
-            # Include wishlist items for the parent and their children
             return Wishlist.objects.filter(
                 models.Q(userId=user) | models.Q(userId__in=children)
             ).select_related('userId', 'productId')
         else:
-            # For other users (в т.ч. Ребенок), only show their own wishlist
             return Wishlist.objects.filter(userId=user).select_related('userId', 'productId')
 
 
 class WishlistCreateView(generics.CreateAPIView):
-    """Добавить товар в список желаний (для авторизованных, в т.ч. ребёнка)."""
     serializer_class = WishlistCreateSerializer
     permission_classes = [IsAuthenticated]
     
@@ -284,7 +270,6 @@ class WishlistCreateView(generics.CreateAPIView):
 
 
 class WishlistDestroyView(generics.DestroyAPIView):
-    """Удалить товар из списка желаний (только свой)."""
     permission_classes = [IsAuthenticated]
     
     def get_queryset(self):
@@ -292,12 +277,10 @@ class WishlistDestroyView(generics.DestroyAPIView):
 
 
 def _cart_allowed(user):
-    """Корзина доступна только покупателю (родителю)."""
     return hasattr(user, 'roleId') and user.roleId.roleName == 'Покупатель'
 
 
 class CartListView(generics.GenericAPIView):
-    """Корзина: список позиций с итогом (GET), добавление товара (POST)."""
     permission_classes = [IsAuthenticated]
 
     def get_queryset(self):
@@ -331,7 +314,6 @@ class CartListView(generics.GenericAPIView):
 
 
 class CartItemDetailView(generics.GenericAPIView):
-    """Изменение количества (PATCH) и удаление (DELETE) позиции корзины."""
     permission_classes = [IsAuthenticated]
 
     def get_queryset(self):
@@ -363,7 +345,6 @@ def _buyer_only(user):
 
 
 class UserAddressListView(generics.ListAPIView):
-    """Список адресов покупателя."""
     permission_classes = [IsAuthenticated]
     serializer_class = AddressBriefSerializer
 
@@ -374,7 +355,6 @@ class UserAddressListView(generics.ListAPIView):
 
 
 class UserAddressCreateView(generics.CreateAPIView):
-    """Добавление адреса покупателем."""
     permission_classes = [IsAuthenticated]
     serializer_class = AddressCreateSerializer
 
@@ -385,7 +365,6 @@ class UserAddressCreateView(generics.CreateAPIView):
 
 
 class UserAddressDeleteView(generics.DestroyAPIView):
-    """Удаление адреса покупателем."""
     permission_classes = [IsAuthenticated]
     serializer_class = AddressBriefSerializer
 
@@ -414,7 +393,6 @@ SDEK_PICKUP_POINTS = [
 
 
 class CheckoutDeliveryOptionsView(generics.GenericAPIView):
-    """Список способов доставки для оформления заказа."""
     permission_classes = [IsAuthenticated]
 
     def get(self, request, *args, **kwargs):
@@ -423,7 +401,6 @@ class CheckoutDeliveryOptionsView(generics.GenericAPIView):
 
 
 class CheckoutSdekPointsView(generics.GenericAPIView):
-    """Список пунктов выдачи СДЭК для выбора на карте (без новых моделей)."""
     permission_classes = [IsAuthenticated]
 
     def get(self, request, *args, **kwargs):
@@ -431,7 +408,6 @@ class CheckoutSdekPointsView(generics.GenericAPIView):
 
 
 class CheckoutPaymentOptionsView(generics.GenericAPIView):
-    """Список способов оплаты. При deliveryType=пункт выдачи — только онлайн."""
     permission_classes = [IsAuthenticated]
 
     def get(self, request, *args, **kwargs):
@@ -444,7 +420,6 @@ class CheckoutPaymentOptionsView(generics.GenericAPIView):
 
 
 class CreateOrderView(generics.GenericAPIView):
-    """Создание заказа из корзины (атомарная транзакция)."""
     permission_classes = [IsAuthenticated]
     serializer_class = CheckoutCreateSerializer
 
@@ -540,7 +515,6 @@ class CreateOrderView(generics.GenericAPIView):
 
 
 class UserOrdersListView(generics.ListAPIView):
-    """Список заказов покупателя."""
     permission_classes = [IsAuthenticated]
     serializer_class = UserOrderSerializer
 
@@ -551,7 +525,6 @@ class UserOrdersListView(generics.ListAPIView):
 
 
 class UserOrderDetailView(generics.RetrieveAPIView):
-    """Детали заказа покупателя."""
     permission_classes = [IsAuthenticated]
     serializer_class = UserOrderDetailSerializer
 
@@ -562,7 +535,6 @@ class UserOrderDetailView(generics.RetrieveAPIView):
 
 
 class UserOrderCancelView(generics.GenericAPIView):
-    """Отмена заказа покупателем."""
     permission_classes = [IsAuthenticated]
     serializer_class = UserOrderDetailSerializer
 
@@ -603,7 +575,6 @@ class UserOrderCancelView(generics.GenericAPIView):
 
 
 def _user_has_purchased_product(user, product_id):
-    """Покупатель приобрёл товар в неотменённом заказе."""
     return OrderItem.objects.filter(
         orderId__userId=user,
         productId_id=product_id
@@ -614,7 +585,6 @@ def _user_has_purchased_product(user, product_id):
 
 
 class UserReviewListCreateView(generics.GenericAPIView):
-    """GET: мой отзыв по товару (?product_id=). POST: создать отзыв (только на купленные товары)."""
     permission_classes = [IsAuthenticated]
     serializer_class = ReviewSerializer
 
@@ -663,7 +633,6 @@ class UserReviewListCreateView(generics.GenericAPIView):
 
 
 def _validate_review_text_profanity(text):
-    """Поднимает ValidationError при наличии нецензурной лексики."""
     from .profanity import contains_profanity
     if text and contains_profanity(text):
         from rest_framework.exceptions import ValidationError as DRFValidationError
@@ -671,7 +640,6 @@ def _validate_review_text_profanity(text):
 
 
 class UserReviewDetailView(generics.GenericAPIView):
-    """GET: мой отзыв по id. PUT/PATCH: изменить отзыв (только автор)."""
     permission_classes = [IsAuthenticated]
     serializer_class = ReviewSerializer
 
@@ -709,7 +677,6 @@ class UserReviewDetailView(generics.GenericAPIView):
 
 
 class PaymentProcessView(generics.GenericAPIView):
-    """Эмуляция оплаты онлайн (обновляет paymentStatus заказа)."""
     permission_classes = [IsAuthenticated]
     serializer_class = PaymentProcessSerializer
 
@@ -737,7 +704,6 @@ class PaymentProcessView(generics.GenericAPIView):
 
 
 class ParentChildrenListView(generics.GenericAPIView):
-    """Список привязанных детских аккаунтов и привязка по email (только для Покупатель)."""
     permission_classes = [IsAuthenticated]
 
     def get_queryset(self):
@@ -761,7 +727,6 @@ class ParentChildrenListView(generics.GenericAPIView):
 
 
 class ParentChildDetailView(generics.GenericAPIView):
-    """Просмотр, редактирование и отвязка одного привязанного ребёнка (pk = userId ребёнка)."""
     permission_classes = [IsAuthenticated]
 
     def get_link_and_child(self, request, pk):
@@ -809,7 +774,6 @@ class AdminPanelView(generics.GenericAPIView):
     
     def get(self, request, *args, **kwargs):
         user = request.user
-        # Check if user is admin or manager
         if user.roleId.roleName in ['Администратор', 'Менеджер']:
             is_admin = user.roleId.roleName == 'Администратор'
             return Response({
@@ -818,7 +782,6 @@ class AdminPanelView(generics.GenericAPIView):
                 'is_admin': is_admin
             })
         else:
-            # Redirect to regular site
             return Response({
                 'message': 'Access denied. Redirecting to main site.',
                 'redirect': '/'
@@ -829,13 +792,10 @@ class AdminDashboardView(generics.GenericAPIView):
     
     def get(self, request, *args, **kwargs):
         user = request.user
-        # Check if user is admin or manager
         if user.roleId.roleName in ['Администратор', 'Менеджер']:
-            # Get statistics
             total_products = Product.objects.count()
             total_users = User.objects.count()
             total_orders = Order.objects.count()
-            # Calculate total revenue (simplified)
             total_revenue = sum(order.total for order in Order.objects.all())
             
             return Response({
@@ -853,13 +813,11 @@ class AdminProductsView(generics.ListAPIView):
     
     def get_queryset(self):
         user = self.request.user
-        # Check if user is admin or manager
         if user.roleId.roleName in ['Администратор', 'Менеджер']:
             return Product.objects.all().select_related('categoryId', 'brandId')
         else:
             return Product.objects.none()
 
-# Product CRUD Views for Admin
 class AdminProductCreateView(generics.CreateAPIView):
     serializer_class = ProductCreateUpdateSerializer
     permission_classes = [IsAuthenticated]
@@ -888,7 +846,6 @@ class AdminProductDetailView(generics.RetrieveUpdateDestroyAPIView):
     
     def get_queryset(self):
         user = self.request.user
-        # Check if user is admin or manager
         if user.roleId.roleName in ['Администратор', 'Менеджер']:
             return Product.objects.all().select_related('categoryId', 'brandId').prefetch_related('productimage_set', 'productattribute_set')
         else:
@@ -913,7 +870,6 @@ class AdminProductDetailView(generics.RetrieveUpdateDestroyAPIView):
         return response
 
 
-# Views for Product Images
 class ProductImageViewSet(viewsets.ModelViewSet):
     serializer_class = ProductImageSerializer
     permission_classes = [IsAuthenticated]
@@ -955,7 +911,6 @@ class ProductImageViewSet(viewsets.ModelViewSet):
         super().perform_destroy(instance)
         log_audit(user, 'DELETE', 'productImage', record_id, old_values=old_values, new_values=None)
 
-# Views for Product Attributes
 class ProductAttributeViewSet(viewsets.ModelViewSet):
     serializer_class = ProductAttributeSerializer
     permission_classes = [IsAuthenticated]
@@ -999,7 +954,6 @@ class ProductAttributeViewSet(viewsets.ModelViewSet):
 
 
 class ProductImageUploadView(APIView):
-    """Загрузка файла изображения; возвращает URL для сохранения в ProductImage."""
     permission_classes = [IsAuthenticated]
     parser_classes = [MultiPartParser, FormParser]
 
@@ -1126,7 +1080,6 @@ class AdminBrandDetailView(generics.RetrieveUpdateDestroyAPIView):
 
 
 class AdminUsersView(generics.ListAPIView):
-    """Только администратор: управление пользователями."""
     serializer_class = UserSerializer
     permission_classes = [IsAuthenticated]
 
@@ -1138,7 +1091,6 @@ class AdminUsersView(generics.ListAPIView):
 
 
 class AdminUserCreateView(generics.CreateAPIView):
-    """Только администратор."""
     serializer_class = UserCreateUpdateSerializer
     permission_classes = [IsAuthenticated]
 
@@ -1160,7 +1112,6 @@ class AdminUserCreateView(generics.CreateAPIView):
 
 
 class RoleListView(generics.ListAPIView):
-    """Только администратор (для формы пользователей)."""
     serializer_class = RoleSerializer
     permission_classes = [IsAuthenticated]
 
@@ -1172,7 +1123,6 @@ class RoleListView(generics.ListAPIView):
 
 
 class AdminUserDetailView(generics.RetrieveUpdateDestroyAPIView):
-    """Только администратор."""
     serializer_class = UserCreateUpdateSerializer
     permission_classes = [IsAuthenticated]
     lookup_field = 'pk'
@@ -1242,7 +1192,6 @@ class AdminOrderDetailView(generics.RetrieveUpdateAPIView):
 
 
 class AdminOrderMarkPaidView(generics.GenericAPIView):
-    """Отметить заказ как оплаченный (для заказов с оплатой при получении)."""
     permission_classes = [IsAuthenticated]
 
     def get_queryset(self):
@@ -1286,7 +1235,6 @@ class AdminOrderStatusListView(generics.ListAPIView):
 
 
 class AdminAuditLogListView(generics.ListAPIView):
-    """Только администратор: мониторинг системных журналов."""
     serializer_class = AuditLogSerializer
     permission_classes = [IsAuthenticated]
 
@@ -1298,7 +1246,6 @@ class AdminAuditLogListView(generics.ListAPIView):
 
 
 class AdminReviewListView(generics.ListAPIView):
-    """Админ и менеджер: список отзывов для модерации."""
     serializer_class = AdminReviewSerializer
     permission_classes = [IsAuthenticated]
 
@@ -1310,7 +1257,6 @@ class AdminReviewListView(generics.ListAPIView):
 
 
 class AdminReviewDetailView(generics.RetrieveDestroyAPIView):
-    """Админ и менеджер: просмотр и удаление отзыва."""
     serializer_class = AdminReviewSerializer
     permission_classes = [IsAuthenticated]
     lookup_url_kwarg = 'pk'
@@ -1330,13 +1276,7 @@ class AdminReviewDetailView(generics.RetrieveDestroyAPIView):
             record_id, old_values=old_values, new_values=None,
         )
 
-
-# =============================================
-# АНАЛИТИКА - API для отчётов
-# =============================================
-
 class AdminAnalyticsSalesView(APIView):
-    """Аналитика продаж: выручка, количество заказов, средний чек."""
     permission_classes = [IsAuthenticated]
 
     def get(self, request):
@@ -1344,16 +1284,13 @@ class AdminAnalyticsSalesView(APIView):
         if user.roleId.roleName not in ['Администратор', 'Менеджер']:
             return Response({'detail': 'Доступ запрещён.'}, status=status.HTTP_403_FORBIDDEN)
 
-        # Получаем параметры фильтрации
         date_from = request.query_params.get('date_from')
         date_to = request.query_params.get('date_to')
-        group_by = request.query_params.get('group_by', 'day')  # day, week, month
-        export_format = request.query_params.get('export')  # csv, excel
-
-        # Базовый queryset - только оплаченные заказы
+        group_by = request.query_params.get('group_by', 'day')  
+        export_format = request.query_params.get('export') 
+        
         orders_qs = Order.objects.filter(paymentStatus=Order.PAYMENT_STATUS_PAID)
 
-        # Применяем фильтры по дате
         if date_from:
             try:
                 date_from_parsed = datetime.strptime(date_from, '%Y-%m-%d')
@@ -1367,7 +1304,6 @@ class AdminAnalyticsSalesView(APIView):
             except ValueError:
                 pass
 
-        # Общая статистика
         total_stats = orders_qs.aggregate(
             total_revenue=Sum('total'),
             total_orders=Count('orderId'),
@@ -1550,7 +1486,6 @@ class AdminAnalyticsSalesView(APIView):
         })
 
     def _create_export_response(self, rows, export_format, filename):
-        """Создаёт HTTP response с файлом для экспорта."""
         print(f">>> SALES EXPORT: format={export_format}, OPENPYXL={OPENPYXL_AVAILABLE} <<<")
         if not rows:
             rows = [{'Нет данных': ''}]
@@ -1595,7 +1530,6 @@ class AdminAnalyticsSalesView(APIView):
             response['Content-Disposition'] = f'attachment; filename="{filename}.xlsx"'
             return response
 
-        # CSV export (fallback)
         output = io.StringIO()
         if rows:
             fieldnames = list(rows[0].keys())
@@ -1822,7 +1756,6 @@ class AdminAnalyticsProductsView(APIView):
             response['Content-Disposition'] = f'attachment; filename="{filename}.xlsx"'
             return response
 
-        # CSV export (fallback)
         output = io.StringIO()
         if rows:
             fieldnames = list(rows[0].keys())
@@ -1930,8 +1863,8 @@ class AdminAnalyticsExportView(APIView):
         if user.roleId.roleName not in ['Администратор', 'Менеджер']:
             return Response({'detail': 'Доступ запрещён.'}, status=status.HTTP_403_FORBIDDEN)
 
-        report_type = request.query_params.get('report', 'sales')  # sales, products
-        export_format = request.query_params.get('format', 'csv')  # csv, excel
+        report_type = request.query_params.get('report', 'sales')  
+        export_format = request.query_params.get('format', 'csv')  
         date_from = request.query_params.get('date_from')
         date_to = request.query_params.get('date_to')
 
@@ -2109,10 +2042,6 @@ class AdminAnalyticsExportView(APIView):
             # Если openpyxl не установлен, возвращаем CSV
             return self._create_csv_response(rows, filename)
 
-
-# =============================================
-# ИМПОРТ / ЭКСПОРТ ДАННЫХ
-# =============================================
 
 EXPORT_TABLE_CONFIG = {
     'product': {
@@ -2342,10 +2271,6 @@ class AdminDataImportView(APIView):
         except Exception as e:
             return Response({'detail': f'Ошибка импорта: {str(e)}'}, status=500)
 
-
-# =============================================
-# РЕЗЕРВНОЕ КОПИРОВАНИЕ И ВОССТАНОВЛЕНИЕ
-# =============================================
 
 class AdminBackupListView(APIView):
     """Список резервных копий и создание новой."""

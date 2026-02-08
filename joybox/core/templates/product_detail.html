@@ -458,7 +458,7 @@
                 <img id="mainImage" class="main-image" src="" alt="">
             </div>
             <div class="thumbnail-images" id="thumbnailImages">
-                <!-- Thumbnails will be populated by JavaScript -->
+                <!-- Миниатюры будут заполнены JavaScript -->
             </div>
         </div>
         
@@ -496,7 +496,7 @@
             <div class="product-attributes">
                 <h3>Характеристики</h3>
                 <div class="attributes-list" id="productAttributes">
-                    <!-- Attributes will be populated by JavaScript -->
+                    <!-- Характеристики будут заполнены JavaScript -->
                 </div>
             </div>
             
@@ -530,7 +530,7 @@
             <div class="reviews-section">
                 <h3>Отзывы покупателей</h3>
                 <div id="reviewsContainer">
-                    <!-- Reviews will be populated by JavaScript -->
+                    <!-- Отзывы будут заполнены JavaScript -->
                 </div>
                 <div id="write-review" style="display: none;">
                     <h4>Написать отзыв</h4>
@@ -550,7 +550,7 @@
             <div class="product-attributes">
                 <h3>Полные характеристики</h3>
                 <div class="attributes-list" id="detailedAttributes">
-                    <!-- Attributes will be populated by JavaScript -->
+                    <!-- Характеристики будут заполнены JavaScript -->
                 </div>
             </div>
         </div>
@@ -564,9 +564,9 @@
     let currentWishlistId = null;
     const authToken = typeof localStorage !== 'undefined' ? localStorage.getItem('authToken') : null;
     
-    // Load product data
+    // Загрузка данных о товаре
     async function loadProduct() {
-        // Get product ID from data attribute
+        // Получить ID товара из data-атрибута
         const productContainer = document.querySelector('.product-detail-page');
         const productId = productContainer.dataset.productId;
         
@@ -583,12 +583,12 @@
             const product = await response.json();
             currentProduct = product;
             
-            // Hide loading, show product
+            // Скрыть загрузку, показать товар
             loadingContainer.style.display = 'none';
             errorContainer.style.display = 'none';
             productDetailContainer.style.display = 'flex';
             
-            // Populate product data
+            // Заполнить данные товара
             populateProductData(product);
             // Для ребёнка скрыть корзину; обновить состояние кнопки «В желания»
             checkUserRoleAndWishlist();
@@ -641,29 +641,29 @@
         } catch (e) { console.error(e); }
     }
     
-    // Populate product data
+    // Заполнение данных товара
     function populateProductData(product) {
         const safe = (v, def) => (v != null && v !== '' ? v : def);
         const brandName = product.brand ? (product.brand.brandName || product.brand) : '';
 
-        // Basic info
+        // Основная информация
         document.getElementById('productName').textContent = safe(product.productName, 'Товар');
         document.getElementById('productBrand').textContent = brandName;
         document.getElementById('productPrice').textContent = `${Number(product.price || 0).toLocaleString('ru-RU')} руб.`;
         document.getElementById('productDescription').textContent = safe(product.productDescription, '');
         document.getElementById('detailedDescription').textContent = safe(product.productDescription, '');
 
-        // Rating
+        // Рейтинг
         const starsHtml = renderStars(product.average_rating);
         document.getElementById('productStars').innerHTML = starsHtml;
         document.getElementById('productRatingText').textContent = `${product.average_rating != null ? Number(product.average_rating).toFixed(1) : 'Нет оценок'} (${product.review_count || 0} отзывов)`;
 
-        // Meta info
+        // Метаданные
         document.getElementById('productAge').textContent = `${product.ageRating != null ? product.ageRating : 0}+ лет`;
         document.getElementById('productWeight').textContent = product.weightKg != null ? `${product.weightKg} кг` : '—';
         document.getElementById('productDimensions').textContent = safe(product.dimensions, '—');
 
-        // Images
+        // Изображения
         const images = Array.isArray(product.images) ? product.images : [];
         if (images.length > 0) {
             const mainImage = product.main_image && product.main_image.url ? product.main_image : images[0];
@@ -688,7 +688,7 @@
             document.getElementById('thumbnailImages').innerHTML = '';
         }
 
-        // Attributes
+        // Характеристики
         const attributesContainer = document.getElementById('productAttributes');
         const detailedAttributesContainer = document.getElementById('detailedAttributes');
         const attrs = Array.isArray(product.attributes) ? product.attributes : [];
@@ -721,7 +721,7 @@
         }
     }
     
-    // Load product reviews
+    // Загрузка отзывов о товаре
     async function loadProductReviews(productId) {
         try {
             const response = await fetch(`/api/catalog/products/${productId}/reviews/`);
@@ -738,7 +738,7 @@
         }
     }
     
-    // Load current user's review and show form or "already reviewed"
+    // Загрузка отзыва текущего пользователя и показ формы или «уже оставлен отзыв»
     async function loadMyReviewAndShowForm(productId) {
         const block = document.getElementById('write-review');
         const content = document.getElementById('writeReviewContent');
@@ -845,7 +845,7 @@
         });
     }
     
-    // Display reviews
+    // Отображение отзывов
     function displayReviews(reviews) {
         const reviewsContainer = document.getElementById('reviewsContainer');
         
@@ -870,7 +870,7 @@
         `).join('');
     }
     
-    // Render star rating
+    // Отрисовка рейтинга звёздами
     function renderStars(rating) {
         if (!rating) return '<i class="far fa-star"></i>'.repeat(5);
         
@@ -878,17 +878,17 @@
         const hasHalfStar = rating % 1 >= 0.5;
         let starsHtml = '';
         
-        // Full stars
+        // Полные звёзды
         for (let i = 0; i < fullStars; i++) {
             starsHtml += '<i class="fas fa-star"></i>';
         }
         
-        // Half star
+        // Полу-звезда
         if (hasHalfStar) {
             starsHtml += '<i class="fas fa-star-half-alt"></i>';
         }
         
-        // Empty stars
+        // Пустые звёзды
         const emptyStars = 5 - fullStars - (hasHalfStar ? 1 : 0);
         for (let i = 0; i < emptyStars; i++) {
             starsHtml += '<i class="far fa-star"></i>';
@@ -897,18 +897,18 @@
         return starsHtml;
     }
     
-    // Change main image
+    // Смена основного изображения
     function changeMainImage(url, altText) {
         document.getElementById('mainImage').src = url;
         document.getElementById('mainImage').alt = altText;
         
-        // Update active thumbnail
+        // Обновить активную миниатюру
         const thumbnails = document.querySelectorAll('.thumbnail-image');
         thumbnails.forEach(thumb => thumb.classList.remove('active'));
         event.currentTarget.classList.add('active');
     }
     
-    // Quantity controls
+    // Управление количеством
     function increaseQuantity() {
         const input = document.getElementById('quantityInput');
         input.value = Math.min(parseInt(input.value) + 1, 99);
@@ -1004,26 +1004,26 @@
         }
     }
     
-    // Tab switching
+    // Переключение вкладок
     function showTab(tabName) {
-        // Hide all tabs
+        // Скрыть все вкладки
         document.querySelectorAll('.tab-content').forEach(tab => {
             tab.classList.remove('active');
         });
         
-        // Remove active class from all buttons
+        // Убрать класс active у всех кнопок
         document.querySelectorAll('.tab-button').forEach(button => {
             button.classList.remove('active');
         });
         
-        // Show selected tab
+        // Показать выбранную вкладку
         document.getElementById(`${tabName}Tab`).classList.add('active');
         
-        // Mark button as active
+        // Отметить кнопку как активную
         event.currentTarget.classList.add('active');
     }
     
-    // Initialize
+    // Инициализация
     document.addEventListener('DOMContentLoaded', function() {
         loadProduct();
     });

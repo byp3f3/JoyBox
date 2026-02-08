@@ -1,11 +1,6 @@
-"""
-Команда для создания резервной копии базы данных PostgreSQL.
-
-Использование:
-    python manage.py backup_db                  # Полный бэкап (custom format)
-    python manage.py backup_db --format sql     # SQL-дамп
-    python manage.py backup_db --data-only      # Только данные
-"""
+# python manage.py backup_db - Полный бэкап (custom format)
+# python manage.py backup_db --format sql - SQL-дамп
+# python manage.py backup_db --data-only - Только данные
 
 import os
 import subprocess
@@ -17,7 +12,6 @@ from django.conf import settings
 
 
 class Command(BaseCommand):
-    help = 'Создание резервной копии базы данных PostgreSQL (pg_dump)'
 
     def add_arguments(self, parser):
         parser.add_argument(
@@ -119,8 +113,8 @@ class Command(BaseCommand):
 
         return output_path
 
+    # Удаление старых бэкапов
     def _rotate_backups(self, backup_dir):
-        """Удаляет старые бэкапы, оставляя не более BACKUP_MAX_COUNT."""
         max_count = getattr(settings, 'BACKUP_MAX_COUNT', 10)
         backups = sorted(
             [f for f in backup_dir.iterdir() if f.is_file() and f.suffix in ('.backup', '.sql')],

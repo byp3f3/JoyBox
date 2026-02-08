@@ -159,7 +159,7 @@
     document.getElementById('loginForm').addEventListener('submit', function(e) {
         e.preventDefault();
         
-        // Get form data
+        // Получение данных формы
         const email = document.getElementById('email').value;
         const password = document.getElementById('password').value;
         const errorMessage = document.getElementById('errorMessage');
@@ -167,15 +167,15 @@
         const buttonText = document.getElementById('buttonText');
         const loginSpinner = document.getElementById('loginSpinner');
         
-        // Hide previous errors
+        // Скрыть предыдущие ошибки
         errorMessage.style.display = 'none';
         
-        // Show loading state
+        // Показать состояние загрузки
         buttonText.style.display = 'none';
         loginSpinner.style.display = 'block';
         loginButton.disabled = true;
         
-        // Send login request
+        // Отправка запроса на вход
         fetch('/api/auth/login/', {
             method: 'POST',
             headers: {
@@ -195,18 +195,18 @@
             return response.json();
         })
         .then(data => {
-            // Store token in localStorage
+            // Сохранить токен в localStorage
             localStorage.setItem('authToken', data.token);
             
-            // Redirect to profile or home page
+            // Перенаправление на профиль или главную страницу
             window.location.href = '/';
         })
         .catch(error => {
-            // Show error message
+            // Показать сообщение об ошибке
             errorMessage.textContent = error.message;
             errorMessage.style.display = 'block';
             
-            // Reset button
+            // Сбросить кнопку
             buttonText.style.display = 'block';
             loginSpinner.style.display = 'none';
             loginButton.disabled = false;

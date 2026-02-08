@@ -1,8 +1,4 @@
-"""
-Централизованный обработчик исключений для DRF.
-Перехватывает все ошибки и возвращает человекочитаемые сообщения на русском языке
-в единообразном формате: { "detail": "...", "code": "..." }
-"""
+# Централизованный обработчик исключений
 
 from rest_framework.views import exception_handler
 from rest_framework.response import Response
@@ -14,7 +10,6 @@ import logging
 
 logger = logging.getLogger(__name__)
 
-# Маппинг стандартных HTTP-кодов на русскоязычные описания
 HTTP_STATUS_MESSAGES = {
     400: 'Некорректный запрос.',
     401: 'Необходима авторизация.',
@@ -28,7 +23,6 @@ HTTP_STATUS_MESSAGES = {
     500: 'Внутренняя ошибка сервера. Попробуйте позже.',
 }
 
-# Маппинг кодов ошибок DRF на русские сообщения
 DRF_CODE_MESSAGES = {
     'authentication_failed': 'Ошибка аутентификации. Проверьте логин и пароль.',
     'not_authenticated': 'Необходима авторизация. Войдите в аккаунт.',
@@ -51,7 +45,6 @@ DRF_CODE_MESSAGES = {
     'invalid_choice': 'Недопустимое значение.',
 }
 
-# Маппинг английских фраз DRF на русские
 ENGLISH_TO_RUSSIAN = {
     'This field is required.': 'Это поле обязательно для заполнения.',
     'This field may not be blank.': 'Это поле не может быть пустым.',
@@ -75,7 +68,6 @@ ENGLISH_TO_RUSSIAN = {
     'Method "{method}" not allowed.': 'Метод не поддерживается.',
 }
 
-# Маппинг названий полей на русские
 FIELD_NAMES_RU = {
     'email': 'Email',
     'password': 'Пароль',
@@ -111,7 +103,6 @@ FIELD_NAMES_RU = {
 
 
 def _translate_message(msg):
-    """Пытается перевести английское сообщение на русский."""
     if not isinstance(msg, str):
         return str(msg)
 
@@ -128,10 +119,6 @@ def _translate_message(msg):
 
 
 def _flatten_errors(errors, parent_key=''):
-    """
-    Преобразует вложенный словарь ошибок DRF в плоский список
-    человекочитаемых сообщений.
-    """
     messages = []
 
     if isinstance(errors, str):
@@ -158,11 +145,6 @@ def _flatten_errors(errors, parent_key=''):
 
 
 def custom_exception_handler(exc, context):
-    """
-    Централизованный обработчик исключений.
-    Возвращает ответ в формате: { "detail": "сообщение", "code": "код_ошибки" }
-    """
-
     # Конвертируем Django ValidationError в DRF ValidationError
     if isinstance(exc, DjangoValidationError):
         from rest_framework.exceptions import ValidationError as DRFValidationError
@@ -204,8 +186,6 @@ def custom_exception_handler(exc, context):
         }
 
         return response
-
-    # Обработка исключений, не перехваченных стандартным обработчиком DRF
 
     if isinstance(exc, IntegrityError):
         logger.exception("IntegrityError в API")

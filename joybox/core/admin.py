@@ -5,9 +5,6 @@ from .models import (
     ParentChild, AuditLog
 )
 
-
-# --- Inline для редактирования фото и характеристик на странице продукта ---
-
 class ProductImageInline(admin.TabularInline):
     model = ProductImage
     extra = 1
@@ -39,17 +36,11 @@ class ProductAdmin(admin.ModelAdmin):
         }),
     )
 
-
-# --- Управление категориями ---
-
 @admin.register(Category)
 class CategoryAdmin(admin.ModelAdmin):
     list_display = ('categoryId', 'categoryName')
     search_fields = ('categoryName', 'categoryDescription')
     list_display_links = ('categoryName',)
-
-
-# --- Управление брендами ---
 
 @admin.register(Brand)
 class BrandAdmin(admin.ModelAdmin):
@@ -57,9 +48,6 @@ class BrandAdmin(admin.ModelAdmin):
     search_fields = ('brandName', 'brandDescription', 'brandCountry')
     list_display_links = ('brandName',)
     list_filter = ('brandCountry',)
-
-
-# --- Остальные модели (без изменений) ---
 
 admin.site.register(Role)
 admin.site.register(User)
@@ -72,7 +60,5 @@ admin.site.register(Wishlist)
 admin.site.register(Cart)
 admin.site.register(ParentChild)
 admin.site.register(AuditLog)
-
-# Изображения и атрибуты можно редактировать и отдельно (например, для массовых правок)
 admin.site.register(ProductImage)
 admin.site.register(ProductAttribute)

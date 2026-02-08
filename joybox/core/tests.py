@@ -1,17 +1,4 @@
-"""
-Тесты серверной логики и API JoyBox.
-
-Функциональное тестирование:
-  - CRUD операции (товары, категории, бренды, пользователи, заказы)
-  - Поиск, сортировка, фильтры
-  - Роли и доступ
-  - Хранимые процедуры и триггеры
-  - Транзакции
-
-Интеграционное тестирование:
-  - Взаимодействие API (полный цикл)
-  - Импорт/экспорт данных
-"""
+# Тесты серверной логики и API JoyBox.
 
 from django.test import TestCase, TransactionTestCase
 from rest_framework.test import APIClient
@@ -60,10 +47,7 @@ def _truncate_app_tables():
         # Сбрасываем переменную сессии
         cursor.execute("SELECT set_config('app.current_user_id', '', false)")
 
-
-# =============================================
 # ВСПОМОГАТЕЛЬНЫЕ МИКСИНЫ
-# =============================================
 
 class BaseTestMixin:
     """Базовый миксин для создания тестовых данных."""
@@ -146,10 +130,7 @@ class BaseTestMixin:
             dimensions='10x10x10'
         )
 
-
-# =============================================
 # 1. ФУНКЦИОНАЛЬНЫЕ ТЕСТЫ: CRUD
-# =============================================
 
 class CategoryCRUDTest(TestCase, BaseTestMixin):
     """CRUD-тесты для категорий."""
@@ -444,10 +425,7 @@ class UserCRUDTest(TestCase, BaseTestMixin):
         response = self.client.delete(f'/api/admin/users/{victim.userId}/')
         self.assertEqual(response.status_code, status.HTTP_204_NO_CONTENT)
 
-
-# =============================================
 # 2. ПОИСК, СОРТИРОВКА, ФИЛЬТРЫ
-# =============================================
 
 class ProductFilterTest(TestCase, BaseTestMixin):
     """Тесты фильтрации, поиска и сортировки товаров."""
@@ -513,10 +491,7 @@ class ProductFilterTest(TestCase, BaseTestMixin):
         prices = [Decimal(p['price']) for p in response.data]
         self.assertEqual(prices, sorted(prices, reverse=True))
 
-
-# =============================================
 # 3. РОЛИ И ДОСТУП
-# =============================================
 
 class RolePermissionTest(TestCase, BaseTestMixin):
     """Тесты ролевого доступа к API."""
@@ -600,10 +575,7 @@ class RolePermissionTest(TestCase, BaseTestMixin):
         response = self.client.delete(f'/api/admin/users/{self.admin.userId}/')
         self.assertNotEqual(response.status_code, status.HTTP_204_NO_CONTENT)
 
-
-# =============================================
 # 4. КОРЗИНА, ЗАКАЗЫ, ОТЗЫВЫ
-# =============================================
 
 class CartAndOrderTest(TransactionTestCase, BaseTestMixin):
     """Тесты корзины и заказов (TransactionTestCase для процедур)."""
@@ -737,10 +709,7 @@ class WishlistTest(TestCase, BaseTestMixin):
         response = self.client.delete(f'/api/auth/wishlist/{wl.wishlistId}/')
         self.assertEqual(response.status_code, status.HTTP_204_NO_CONTENT)
 
-
-# =============================================
 # 5. ХРАНИМЫЕ ПРОЦЕДУРЫ И ТРИГГЕРЫ
-# =============================================
 
 class StoredProcedureTest(TransactionTestCase, BaseTestMixin):
     """Тесты хранимых процедур PostgreSQL."""
@@ -879,10 +848,7 @@ class AuditTriggerTest(TransactionTestCase, BaseTestMixin):
             self.assertIsNotNone(log.oldValues)
             self.assertIsNotNone(log.newValues)
 
-
-# =============================================
 # 6. ТРАНЗАКЦИИ
-# =============================================
 
 class TransactionTest(TransactionTestCase, BaseTestMixin):
     """Тесты транзакционной целостности."""
@@ -947,10 +913,7 @@ class TransactionTest(TransactionTestCase, BaseTestMixin):
         else:
             self.assertIn(response.status_code, [400, 409, 500])
 
-
-# =============================================
 # 7. ИНТЕГРАЦИОННЫЕ ТЕСТЫ
-# =============================================
 
 class FullBuyerFlowTest(TransactionTestCase, BaseTestMixin):
     """Интеграционный тест: полный цикл покупателя."""
@@ -1083,9 +1046,7 @@ class AdminManagementFlowTest(TransactionTestCase, BaseTestMixin):
         self.assertEqual(activity_resp.status_code, status.HTTP_200_OK)
 
 
-# =============================================
 # 8. ИМПОРТ / ЭКСПОРТ
-# =============================================
 
 class DataExportTest(TestCase, BaseTestMixin):
     """Тесты экспорта данных в CSV и SQL."""
@@ -1243,10 +1204,7 @@ class DataImportTest(TransactionTestCase, BaseTestMixin):
         )
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
 
-
-# =============================================
 # 9. АДРЕСНАЯ КНИГА
-# =============================================
 
 class AddressTest(TestCase, BaseTestMixin):
     """Тесты адресной книги."""
@@ -1292,10 +1250,7 @@ class AddressTest(TestCase, BaseTestMixin):
         response = self.client.delete(f'/api/auth/addresses/{addr.addressId}/')
         self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
 
-
-# =============================================
 # 10. ОБРАБОТКА ОШИБОК API
-# =============================================
 
 class ErrorHandlingTest(TestCase, BaseTestMixin):
     """Тесты централизованной обработки ошибок."""

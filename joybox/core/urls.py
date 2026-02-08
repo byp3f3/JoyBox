@@ -85,16 +85,12 @@ urlpatterns = [
     path('api/admin/audit-logs/', views.AdminAuditLogListView.as_view(), name='admin-audit-logs'),
     path('api/admin/reviews/', views.AdminReviewListView.as_view(), name='admin-reviews'),
     path('api/admin/reviews/<int:pk>/', views.AdminReviewDetailView.as_view(), name='admin-review-detail'),
-    # Аналитика
     path('api/admin/analytics/sales/', views.AdminAnalyticsSalesView.as_view(), name='admin-analytics-sales'),
     path('api/admin/analytics/products/', views.AdminAnalyticsProductsView.as_view(), name='admin-analytics-products'),
     path('api/admin/analytics/user-activity/', views.AdminUserActivityView.as_view(), name='admin-user-activity'),
-    # Хранимые процедуры
     path('api/admin/price-adjustment/', views.AdminPriceAdjustmentView.as_view(), name='admin-price-adjustment'),
-    # Импорт / Экспорт
     path('api/admin/data-export/', views.AdminDataExportView.as_view(), name='admin-data-export'),
     path('api/admin/data-import/', views.AdminDataImportView.as_view(), name='admin-data-import'),
-    # Резервное копирование
     path('api/admin/backups/', views.AdminBackupListView.as_view(), name='admin-backups'),
     path('api/admin/backups/download/<str:filename>/', views.AdminBackupDownloadView.as_view(), name='admin-backup-download'),
     path('api/admin/backups/delete/<str:filename>/', views.AdminBackupDeleteView.as_view(), name='admin-backup-delete'),

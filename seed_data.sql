@@ -1,12 +1,5 @@
--- ============================================================
 -- JoyBox: начальные данные каталога
--- Выполняется management-командой seed_db
--- app.current_user_id уже установлен перед запуском
--- ============================================================
 
--- ============================================================
--- КАТЕГОРИИ
--- ============================================================
 INSERT INTO "category" ("categoryId", "categoryName", "categoryDescription") VALUES
 (1, 'Куклы', 'Куклы — больше, чем просто игрушки. Это инструмент для развития эмоционального интеллекта, воображения и социальных навыков. В нашей коллекции вы найдёте кукол разных профессий, культур и стилей, которые помогут ребёнку познавать мир через игру.'),
 (2, 'Конструкторы', 'Конструкторы — безграничный мир для фантазии и инженерии. От первых крупных деталей для малышей до сложных технических моделей. Собирайте, творите, ломайте и создавайте снова! Это лучший тренажер для ума, мелкой моторики и пространственного мышления.'),
@@ -16,9 +9,6 @@ ON CONFLICT ("categoryId") DO NOTHING;
 
 SELECT setval('"category_categoryId_seq"', (SELECT COALESCE(MAX("categoryId"), 1) FROM "category"));
 
--- ============================================================
--- БРЕНДЫ
--- ============================================================
 INSERT INTO "brand" ("brandId", "brandName", "brandDescription", "brandCountry") VALUES
 (1, 'Barbie (Mattel)',
  'Культовый мировой бренд, создающий эталон модной куклы. Barbie — это не просто игрушка, а героиня с историей, множеством профессий и безграничными возможностями для сюжетной игры. Бренд фокусируется на идее «Ты можешь быть кем угодно».',
@@ -42,9 +32,6 @@ ON CONFLICT ("brandId") DO NOTHING;
 
 SELECT setval('"brand_brandId_seq"', (SELECT COALESCE(MAX("brandId"), 1) FROM "brand"));
 
--- ============================================================
--- ТОВАРЫ
--- ============================================================
 INSERT INTO "product" ("productId", "productName", "productDescription", "categoryId", "brandId", "price", "ageRating", "quantity", "weightKg", "dimensions") VALUES
 (1,
  'Конструктор LEGO Creator Ретро камера 31147',
@@ -105,55 +92,31 @@ ON CONFLICT ("productId") DO NOTHING;
 
 SELECT setval('"product_productId_seq"', (SELECT COALESCE(MAX("productId"), 1) FROM "product"));
 
--- ============================================================
--- ИЗОБРАЖЕНИЯ ТОВАРОВ
--- ============================================================
 INSERT INTO "productImage" ("productId", "url", "altText", "isMain") VALUES
--- 1. Конструктор LEGO Creator Ретро камера
-(1, '/media/products/Конструктор LEGO Creator Ретро камера 261 дет..webp',        'Конструктор LEGO Creator Ретро камера — основное фото', TRUE),
-(1, '/media/products/Конструктор LEGO Creator Ретро камера 261 дет.(2).webp',     'Конструктор LEGO Creator Ретро камера — фото 2', FALSE),
-
--- 2. Кукла Barbie Безграничные движения
-(2, '/media/products/Кукла Barbie Безграничные движения HRH29.webp',              'Кукла Barbie Безграничные движения — основное фото', TRUE),
-(2, '/media/products/Кукла Barbie Безграничные движения HRH29 (2).webp',          'Кукла Barbie Безграничные движения — фото 2', FALSE),
-
--- 3. Кукла Barbie Deluxe Style Doll
-(3, '/media/products/Кукла Barbie Deluxe Style Doll %233(main).webp',              'Кукла Barbie Deluxe Style — основное фото', TRUE),
-(3, '/media/products/Кукла Barbie Deluxe Style Doll %233.webp',                   'Кукла Barbie Deluxe Style — фото 2', FALSE),
-(3, '/media/products/Кукла Barbie Deluxe Style Doll %233(2).webp',                'Кукла Barbie Deluxe Style — фото 3', FALSE),
-
--- 4. LOL Surprise Olivia
-(4, '/media/products/Кукла модельная L.O.L. Surprise! Tweens Core Olivia Fltr(main).webp',  'LOL Surprise Olivia — основное фото', TRUE),
-(4, '/media/products/Кукла модельная L.O.L. Surprise! Tweens Core Olivia Fltr.webp',        'LOL Surprise Olivia — фото 2', FALSE),
-(4, '/media/products/Кукла модельная L.O.L. Surprise! Tweens Core Olivia Fltr(2).webp',     'LOL Surprise Olivia — фото 3', FALSE),
-
--- 5. LOL Surprise Lana Marine
-(5, '/media/products/Кукла модельная L.O.L. Surprise! Tweens Mermaids Lana Marine.webp',    'LOL Surprise Lana Marine — основное фото', TRUE),
+(1, '/media/products/Конструктор LEGO Creator Ретро камера 261 дет..webp', 'Конструктор LEGO Creator Ретро камера — основное фото', TRUE),
+(1, '/media/products/Конструктор LEGO Creator Ретро камера 261 дет.(2).webp', 'Конструктор LEGO Creator Ретро камера — фото 2', FALSE),
+(2, '/media/products/Кукла Barbie Безграничные движения HRH29.webp', 'Кукла Barbie Безграничные движения — основное фото', TRUE),
+(2, '/media/products/Кукла Barbie Безграничные движения HRH29 (2).webp', 'Кукла Barbie Безграничные движения — фото 2', FALSE),
+(3, '/media/products/Кукла Barbie Deluxe Style Doll %233(main).webp', 'Кукла Barbie Deluxe Style — основное фото', TRUE),
+(3, '/media/products/Кукла Barbie Deluxe Style Doll %233.webp', 'Кукла Barbie Deluxe Style — фото 2', FALSE),
+(3, '/media/products/Кукла Barbie Deluxe Style Doll %233(2).webp', 'Кукла Barbie Deluxe Style — фото 3', FALSE),
+(4, '/media/products/Кукла модельная L.O.L. Surprise! Tweens Core Olivia Fltr(main).webp', 'LOL Surprise Olivia — основное фото', TRUE),
+(4, '/media/products/Кукла модельная L.O.L. Surprise! Tweens Core Olivia Fltr.webp', 'LOL Surprise Olivia — фото 2', FALSE),
+(4, '/media/products/Кукла модельная L.O.L. Surprise! Tweens Core Olivia Fltr(2).webp', 'LOL Surprise Olivia — фото 3', FALSE),
+(5, '/media/products/Кукла модельная L.O.L. Surprise! Tweens Mermaids Lana Marine.webp', 'LOL Surprise Lana Marine — основное фото', TRUE),
 (5, '/media/products/Кукла модельная L.O.L. Surprise! Tweens Mermaids Lana Marine(2).webp', 'LOL Surprise Lana Marine — фото 2', FALSE),
 (5, '/media/products/Кукла модельная L.O.L. Surprise! Tweens Mermaids Lana Marine(3).webp', 'LOL Surprise Lana Marine — фото 3', FALSE),
-
--- 6. LEGO Disney Princess Замок
-(6, '/media/products/Конструктор LEGO Disney Princess Замок принцессы 787 дет..webp',       'LEGO Disney Princess Замок — основное фото', TRUE),
-(6, '/media/products/Конструктор LEGO Disney Princess Замок принцессы 787 дет.(2).webp',    'LEGO Disney Princess Замок — фото 2', FALSE),
-(6, '/media/products/Конструктор LEGO Disney Princess Замок принцессы 787 дет.(3).webp',    'LEGO Disney Princess Замок — фото 3', FALSE),
-
--- 7. Gund Чейз
-(7, '/media/products/Мягкая игрушка Gund Чейз.webp',       'Мягкая игрушка Gund Чейз — основное фото', TRUE),
-(7, '/media/products/Мягкая игрушка Gund Чейз(2).webp',    'Мягкая игрушка Gund Чейз — фото 2', FALSE),
-
--- 8. Gund Скай
-(8, '/media/products/Мягкая игрушка Gund Скай.webp',       'Мягкая игрушка Gund Скай — основное фото', TRUE),
-(8, '/media/products/Мягкая игрушка Gund Скай(2).webp',    'Мягкая игрушка Gund Скай — фото 2', FALSE),
-
--- 9. Bruder Scania
-(9, '/media/products/Подъемный кран Bruder Scania.webp',    'Подъёмный кран Bruder Scania — основное фото', TRUE),
+(6, '/media/products/Конструктор LEGO Disney Princess Замок принцессы 787 дет..webp', 'LEGO Disney Princess Замок — основное фото', TRUE),
+(6, '/media/products/Конструктор LEGO Disney Princess Замок принцессы 787 дет.(2).webp', 'LEGO Disney Princess Замок — фото 2', FALSE),
+(6, '/media/products/Конструктор LEGO Disney Princess Замок принцессы 787 дет.(3).webp', 'LEGO Disney Princess Замок — фото 3', FALSE),
+(7, '/media/products/Мягкая игрушка Gund Чейз.webp', 'Мягкая игрушка Gund Чейз — основное фото', TRUE),
+(7, '/media/products/Мягкая игрушка Gund Чейз(2).webp', 'Мягкая игрушка Gund Чейз — фото 2', FALSE),
+(8, '/media/products/Мягкая игрушка Gund Скай.webp', 'Мягкая игрушка Gund Скай — основное фото', TRUE),
+(8, '/media/products/Мягкая игрушка Gund Скай(2).webp', 'Мягкая игрушка Gund Скай — фото 2', FALSE),
+(9, '/media/products/Подъемный кран Bruder Scania.webp', 'Подъёмный кран Bruder Scania — основное фото', TRUE),
 (9, '/media/products/Подъемный кран Bruder Scania(2).webp', 'Подъёмный кран Bruder Scania — фото 2', FALSE),
-
--- 10. Bruder MAN
-(10, '/media/products/Бетономешалка Bruder MAN.webp',       'Бетономешалка Bruder MAN — основное фото', TRUE),
-(10, '/media/products/Бетономешалка Bruder MAN(2).webp',    'Бетономешалка Bruder MAN — фото 2', FALSE),
-
--- 11. Hot Wheels
-(11, '/media/products/Монстр-трак Hot Wheels.webp',         'Монстр-трак Hot Wheels — основное фото', TRUE),
-(11, '/media/products/Монстр-трак Hot Wheels(2).webp',      'Монстр-трак Hot Wheels — фото 2', FALSE),
-(11, '/media/products/Монстр-трак Hot Wheels(3).webp',      'Монстр-трак Hot Wheels — фото 3', FALSE);
+(10, '/media/products/Бетономешалка Bruder MAN.webp', 'Бетономешалка Bruder MAN — основное фото', TRUE),
+(10, '/media/products/Бетономешалка Bruder MAN(2).webp', 'Бетономешалка Bruder MAN — фото 2', FALSE),
+(11, '/media/products/Монстр-трак Hot Wheels.webp', 'Монстр-трак Hot Wheels — основное фото', TRUE),
+(11, '/media/products/Монстр-трак Hot Wheels(2).webp', 'Монстр-трак Hot Wheels — фото 2', FALSE),
+(11, '/media/products/Монстр-трак Hot Wheels(3).webp', 'Монстр-трак Hot Wheels — фото 3', FALSE);

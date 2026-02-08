@@ -173,7 +173,7 @@
         color: #991b1b;
     }
     
-    /* Modal Styles */
+    /* Стили модальных окон */
     .modal {
         display: none;
         position: fixed;
@@ -334,7 +334,7 @@
     .order-item-card .order-item-meta { font-size: 13px; color: #6c757d; margin-bottom: 4px; }
     .order-item-card .order-item-sum { font-weight: 600; color: var(--primary-color); }
     
-    /* Hotkeys styles */
+    /* Стили горячих клавиш */
     .hotkey-hint {
         display: inline-block;
         background: rgba(0, 0, 0, 0.1);
@@ -434,7 +434,7 @@
         display: none;
     }
     
-    /* Analytics styles */
+    /* Стили аналитики */
     .analytics-filters {
         display: flex;
         gap: 15px;
@@ -1307,7 +1307,7 @@
         </div>
     </div>
     
-    <!-- Audit Log Detail Modal -->
+    <!-- Модальное окно деталей журнала аудита -->
     <div id="auditLogModal" class="modal">
         <div class="modal-content" style="max-width: 700px;">
             <div class="modal-header">
@@ -1337,7 +1337,7 @@
         </div>
     </div>
     
-    <!-- Product Modal -->
+    <!-- Модальное окно товара -->
     <div id="productModal" class="modal">
         <div class="modal-content">
             <div class="modal-header">
@@ -1443,7 +1443,7 @@
         </div>
     </div>
     
-    <!-- User Modal -->
+    <!-- Модальное окно пользователя -->
     <div id="userModal" class="modal">
         <div class="modal-content">
             <div class="modal-header">
@@ -1499,7 +1499,7 @@
         </div>
     </div>
     
-    <!-- Category Modal -->
+    <!-- Модальное окно категории -->
     <div id="categoryModal" class="modal">
         <div class="modal-content">
             <div class="modal-header">
@@ -1524,7 +1524,7 @@
         </div>
     </div>
     
-    <!-- Brand Modal -->
+    <!-- Модальное окно бренда -->
     <div id="brandModal" class="modal">
         <div class="modal-content">
             <div class="modal-header">
@@ -1553,7 +1553,7 @@
         </div>
     </div>
     
-    <!-- Hotkeys Help Panel -->
+    <!-- Панель справки по горячим клавишам -->
     <button class="hotkeys-toggle" onclick="toggleHotkeysHelp()" title="Горячие клавиши (Alt+H)">⌨</button>
     <div id="hotkeysHelp" class="hotkeys-help">
         <h4>
@@ -1578,7 +1578,7 @@
         </div>
     </div>
     
-    <!-- Order Detail Modal -->
+    <!-- Модальное окно деталей заказа -->
     <div id="orderModal" class="modal">
         <div class="modal-content" style="max-width: 700px;">
             <div class="modal-header">
@@ -1630,13 +1630,13 @@
 <!-- Chart.js для визуализаций -->
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
 <script>
-    // Check if user is logged in and has admin rights
+    // Проверка авторизации и прав администратора
     const authToken = localStorage.getItem('authToken');
     if (!authToken) {
         window.location.href = '/login/';
     }
     
-    // Verify admin access
+    // Проверка доступа администратора
     fetch('/api/admin/panel/', {
         headers: {
             'Authorization': `Token ${authToken}`
@@ -1644,7 +1644,7 @@
     })
     .then(response => {
         if (!response.ok) {
-            // If not authorized, redirect to login
+            // При отсутствии авторизации перенаправить на вход
             localStorage.removeItem('authToken');
             window.location.href = '/login/';
             return;
@@ -1670,7 +1670,7 @@
         window.location.href = '/login/';
     });
     
-    // Load dashboard statistics
+    // Загрузка статистики панели
     function loadDashboardStats() {
         fetch('/api/admin/dashboard/', {
             headers: {
@@ -1694,7 +1694,7 @@
         });
     }
     
-    // Load products data
+    // Загрузка данных товаров
     function loadProductsData() {
         fetch('/api/admin/products/', {
             headers: {
@@ -1733,7 +1733,7 @@
         });
     }
     
-    // Load users data
+    // Загрузка данных пользователей
     function loadUsersData() {
         fetch('/api/admin/users/', {
             headers: {
@@ -1779,7 +1779,7 @@
         });
     }
     
-    // Load orders data
+    // Загрузка данных заказов
     function loadOrdersData() {
         fetch('/api/admin/orders/', {
             headers: {
@@ -2048,25 +2048,25 @@
         document.getElementById('auditLogModal').style.display = 'none';
     }
     
-    // Switch between admin sections
+    // Переключение между разделами админ-панели
     function showAdminSection(sectionId) {
-        // Hide all sections
+        // Скрыть все секции
         document.querySelectorAll('.admin-section').forEach(section => {
             section.classList.remove('active');
         });
         
-        // Remove active class from all nav links
+        // Убрать класс active у всех ссылок навигации
         document.querySelectorAll('.admin-nav a').forEach(link => {
             link.classList.remove('active');
         });
         
-        // Show selected section
+        // Показать выбранную секцию
         document.getElementById(`${sectionId}-section`).classList.add('active');
         
-        // Mark nav link as active
+        // Отметить ссылку навигации как активную
         event.currentTarget.classList.add('active');
         
-        // Load data based on section
+        // Загрузить данные в зависимости от раздела
         if (sectionId === 'dashboard') {
             loadDashboardStats();
         } else if (sectionId === 'products') {
@@ -2086,17 +2086,17 @@
         }
     }
     
-    // Logout function
+    // Функция выхода
     function logout() {
         localStorage.removeItem('authToken');
         window.location.href = '/';
     }
     
-    // Product CRUD Functions
+    // Функции CRUD товаров
     
-    // Load categories and brands for dropdowns
+    // Загрузка категорий и брендов для выпадающих списков
     function loadCategoriesAndBrands() {
-        // Load categories
+        // Загрузка категорий
         fetch('/api/catalog/categories/')
             .then(response => response.json())
             .then(categories => {
@@ -2111,7 +2111,7 @@
             })
             .catch(error => console.error('Error loading categories:', error));
         
-        // Load brands
+        // Загрузка брендов
         fetch('/api/catalog/brands/')
             .then(response => response.json())
             .then(brands => {
@@ -2127,21 +2127,21 @@
             .catch(error => console.error('Error loading brands:', error));
     }
     
-    // Open product modal for creation
+    // Открыть модальное окно товара для создания
     function openProductModal(productId = null) {
         loadCategoriesAndBrands();
-        clearAttributes(); // Clear attributes when opening modal
+        clearAttributes(); // Очистить атрибуты при открытии модального окна
         
         const modal = document.getElementById('productModal');
         const form = document.getElementById('productForm');
         const title = document.getElementById('modalTitle');
         
         if (productId) {
-            // Edit mode
+            // Режим редактирования
             title.textContent = 'Редактировать продукт';
             document.getElementById('productId').value = productId;
             
-            // Load product data
+            // Загрузка данных товара
             fetch(`/api/admin/products/${productId}/`, {
                 headers: {
                     'Authorization': `Token ${authToken}`
@@ -2161,20 +2161,20 @@
                 console.log('Images:', product.images);
                 console.log('=========================');
                 
-                // Small delay to ensure dropdowns are populated
+                // Небольшая задержка для заполнения выпадающих списков
                 setTimeout(() => {
-                    // Populate basic fields
+                    // Заполнить основные поля
                     document.getElementById('productName').value = product.productName;
                     document.getElementById('productDescription').value = product.productDescription || '';
                     
-                    // Handle category - try both direct ID and nested object
+                    // Обработка категории — попробовать прямой ID и вложенный объект
                     const categoryId = product.categoryId || (product.category ? product.category.categoryId : null);
                     if (categoryId) {
                         document.getElementById('categoryId').value = categoryId;
                         console.log('Set category ID to:', categoryId);
                     }
                     
-                    // Handle brand - try both direct ID and nested object
+                    // Обработка бренда — попробовать прямой ID и вложенный объект
                     const brandId = product.brandId || (product.brand ? product.brand.brandId : null);
                     if (brandId) {
                         document.getElementById('brandId').value = brandId;
@@ -2187,11 +2187,11 @@
                     document.getElementById('weightKg').value = product.weightKg || '';
                     document.getElementById('dimensions').value = product.dimensions || '';
                     
-                    // Debug final values
+                    // Отладочные финальные значения
                     console.log('Final category dropdown value:', document.getElementById('categoryId').value);
                     console.log('Final brand dropdown value:', document.getElementById('brandId').value);
                     
-                    // Load product attributes if they exist
+                    // Загрузить атрибуты товара, если они есть
                     const attributes = product.attributes;
                     if (attributes && attributes.length > 0) {
                         console.log('Found attributes to load:', attributes);
@@ -2213,14 +2213,14 @@
                         document.getElementById('existingImagesBlock').style.display = 'none';
                         document.getElementById('existingImagesList').innerHTML = '';
                     }
-                }, 100); // 100ms delay
+                }, 100); // Задержка 100 мс
             })
             .catch(error => {
                 console.error('Error loading product:', error);
                 alert('Ошибка при загрузке данных продукта');
             });
         } else {
-            // Create mode
+            // Режим создания
             title.textContent = 'Добавить продукт';
             document.getElementById('productId').value = '';
             form.reset();
@@ -2232,18 +2232,18 @@
         modal.style.display = 'block';
     }
     
-    // Close product modal
+    // Закрыть модальное окно товара
     function closeProductModal() {
         document.getElementById('productModal').style.display = 'none';
         document.getElementById('productForm').reset();
         document.getElementById('productId').value = '';
         document.getElementById('productImages').value = '';
         clearAttributes();
-        // Reset age rating dropdown specifically
+        // Сбросить выпадающий список возраста
         document.getElementById('ageRating').value = '';
     }
     
-    // Handle form submission
+    // Обработка отправки формы
     document.getElementById('productForm').addEventListener('submit', function(e) {
         e.preventDefault();
         
@@ -2260,22 +2260,22 @@
             dimensions: document.getElementById('dimensions').value
         };
         
-        // Get product attributes
+        // Получить атрибуты товара
         const attributes = getProductAttributes();
         
         let url, method;
         
         if (productId) {
-            // Update existing product
+            // Обновить существующий товар
             url = `/api/admin/products/${productId}/`;
             method = 'PUT';
         } else {
-            // Create new product
+            // Создать новый товар
             url = '/api/admin/products/create/';
             method = 'POST';
         }
         
-        // Send product data first
+        // Сначала отправить данные товара
         fetch(url, {
             method: method,
             headers: {
@@ -2360,7 +2360,7 @@
         }
     }
     
-    // Save product attributes
+    // Сохранение атрибутов товара
     async function saveProductAttributes(productId, attributes) {
         const existingAttributesResponse = await fetch(`/api/admin/products/${productId}/attributes/`, {
             headers: { 'Authorization': `Token ${authToken}` }
@@ -2397,7 +2397,7 @@
         }
     }
     
-    // Close modal when clicking outside
+    // Закрыть модальное окно при клике снаружи
     window.onclick = function(event) {
         const modal = document.getElementById('productModal');
         if (event.target == modal) {
@@ -2405,7 +2405,7 @@
         }
     };
     
-    // Add attribute row function
+    // Функция добавления строки атрибута
     function addAttributeRow() {
         const container = document.getElementById('attributesContainer');
         const row = document.createElement('div');
@@ -2428,13 +2428,13 @@
         container.appendChild(row);
     }
     
-    // Remove attribute row function
+    // Функция удаления строки атрибута
     function removeAttributeRow(button) {
         const row = button.closest('.attribute-row');
         row.remove();
     }
     
-    // Get attributes from form
+    // Получить атрибуты из формы
     function getProductAttributes() {
         const attributeRows = document.querySelectorAll('.attribute-row');
         const attributes = [];
@@ -2456,35 +2456,35 @@
         return attributes;
     }
     
-    // Clear attributes container except first row
+    // Очистить контейнер атрибутов, кроме первой строки
     function clearAttributes() {
         const container = document.getElementById('attributesContainer');
         const rows = container.querySelectorAll('.attribute-row');
-        // Keep only the first row
+        // Оставить только первую строку
         for (let i = 1; i < rows.length; i++) {
             rows[i].remove();
         }
-        // Clear the first row inputs
+        // Очистить поля первой строки
         const firstRow = rows[0];
         firstRow.querySelector('.attribute-name').value = '';
         firstRow.querySelector('.attribute-value').value = '';
         firstRow.querySelector('.attribute-unit').value = '';
     }
     
-    // Load product attributes into form
+    // Загрузка атрибутов товара в форму
     function loadProductAttributes(attributes) {
         console.log('Loading attributes:', attributes);
         const container = document.getElementById('attributesContainer');
         
-        // Clear existing attributes except the first empty row
+        // Очистить существующие атрибуты, кроме первой пустой строки
         clearAttributes();
         
-        // Add rows for each attribute
+        // Добавить строки для каждого атрибута
         if (attributes && attributes.length > 0) {
             attributes.forEach((attr, index) => {
                 console.log(`Processing attribute ${index}:`, attr);
                 if (index === 0) {
-                    // Use the first row
+                    // Использовать первую строку
                     const firstRow = container.querySelector('.attribute-row');
                     if (firstRow) {
                         const nameInput = firstRow.querySelector('.attribute-name');
@@ -2501,7 +2501,7 @@
                         }
                     }
                 } else {
-                    // Add new rows
+                    // Добавить новые строки
                     addAttributeRow();
                     const rows = container.querySelectorAll('.attribute-row');
                     const newRow = rows[rows.length - 1];
@@ -2524,7 +2524,7 @@
         }
     }
     
-    // Delete product function
+    // Функция удаления товара
     function deleteProduct(productId) {
         if (confirm('Вы уверены, что хотите удалить этот продукт?')) {
             fetch(`/api/admin/products/${productId}/`, {
@@ -2536,12 +2536,12 @@
             .then(response => {
                 console.log('Delete response status:', response.status);
                 if (!response.ok) {
-                    // For DELETE requests, 204 No Content is success
+                    // Для DELETE-запросов 204 No Content означает успех
                     if (response.status !== 204) {
                         throw new Error(`HTTP error! status: ${response.status}`);
                     }
                 }
-                // Don't try to parse JSON for 204 responses
+                // Не пытаться парсить JSON для ответа 204
                 if (response.status === 204) {
                     return { success: true };
                 }
@@ -2554,7 +2554,7 @@
             })
             .catch(error => {
                 console.error('Error deleting product:', error);
-                // Still reload the data in case the delete actually worked
+                // Всё равно перезагрузить данные на случай успешного удаления
                 loadProductsData();
                 alert('Продукт был удален (возможно была ошибка при подтверждении)');
             });
@@ -2741,11 +2741,11 @@
         loadCategoriesAndBrands();
     }
     
-    // User CRUD Functions
+    // Функции CRUD пользователей
     
-    // Load roles for dropdown
+    // Загрузка ролей для выпадающего списка
     function loadRoles() {
-        // Load roles from API
+        // Загрузка ролей из API
         fetch('/api/admin/roles/', {
             headers: {
                 'Authorization': `Token ${authToken}`
@@ -2761,7 +2761,7 @@
             const roleSelect = document.getElementById('userRoleId');
             roleSelect.innerHTML = '<option value="">Выберите роль</option>';
             
-            // Sort roles by ID for consistent display
+            // Сортировать роли по ID для единообразного отображения
             roles.sort((a, b) => a.roleId - b.roleId);
             
             roles.forEach(role => {
@@ -2773,7 +2773,7 @@
         })
         .catch(error => {
             console.error('Error loading roles:', error);
-            // Fallback to default roles if API fails
+            // Резервные роли по умолчанию при сбое API
             const roleSelect = document.getElementById('userRoleId');
             roleSelect.innerHTML = '<option value="">Выберите роль</option>';
             const defaultRoles = [
@@ -2791,7 +2791,7 @@
         });
     }
     
-    // Open user modal for creation/editing
+    // Открыть модальное окно пользователя для создания/редактирования
     function openUserModal(userId = null) {
         loadRoles();
         
@@ -2800,11 +2800,11 @@
         const title = document.getElementById('userModalTitle');
         
         if (userId) {
-            // Edit mode
+            // Режим редактирования
             title.textContent = 'Редактировать пользователя';
             document.getElementById('userId').value = userId;
             
-            // Load user data
+            // Загрузка данных пользователя
             fetch(`/api/admin/users/${userId}/`, {
                 headers: {
                     'Authorization': `Token ${authToken}`
@@ -2819,7 +2819,7 @@
                 document.getElementById('userPhone').value = user.phone;
                 document.getElementById('userBirthDate').value = user.birthDate;
                 document.getElementById('userRoleId').value = user.roleId;
-                // Clear password field for security
+                // Очистить поле пароля для безопасности
                 document.getElementById('userPassword').value = '';
             })
             .catch(error => {
@@ -2827,7 +2827,7 @@
                 alert('Ошибка при загрузке данных пользователя');
             });
         } else {
-            // Create mode
+            // Режим создания
             title.textContent = 'Добавить пользователя';
             document.getElementById('userId').value = '';
             form.reset();
@@ -2836,19 +2836,19 @@
         modal.style.display = 'block';
     }
     
-    // Initialize
+    // Инициализация
     document.addEventListener('DOMContentLoaded', function() {
-        // The initialization is handled by the verification code above
+        // Инициализация выполняется кодом проверки выше
     });
     
-    // Close user modal
+    // Закрыть модальное окно пользователя
     function closeUserModal() {
         document.getElementById('userModal').style.display = 'none';
         document.getElementById('userForm').reset();
         document.getElementById('userId').value = '';
     }
     
-    // Handle user form submission
+    // Обработка отправки формы пользователя
     document.getElementById('userForm').addEventListener('submit', function(e) {
         e.preventDefault();
         
@@ -2861,10 +2861,10 @@
             phone: document.getElementById('userPhone').value,
             birthDate: document.getElementById('userBirthDate').value,
             roleId: parseInt(document.getElementById('userRoleId').value),
-            username: document.getElementById('userEmail').value // Use email as username
+            username: document.getElementById('userEmail').value // Использовать email как имя пользователя
         };
         
-        // Only include password if it's not empty
+        // Включать пароль только если он не пустой
         const password = document.getElementById('userPassword').value;
         if (password) {
             formData.password = password;
@@ -2873,11 +2873,11 @@
         let url, method;
         
         if (userId) {
-            // Update existing user
+            // Обновить существующего пользователя
             url = `/api/admin/users/${userId}/`;
             method = 'PUT';
         } else {
-            // Create new user
+            // Создать нового пользователя
             url = '/api/admin/users/create/';
             method = 'POST';
         }
@@ -2947,7 +2947,7 @@
         .catch(err => { alert(err.message || 'Ошибка'); loadUsersData(); });
     }
     
-    // Close modal when clicking outside
+    // Закрыть модальное окно при клике снаружи
     window.onclick = function(event) {
         const productModal = document.getElementById('productModal');
         const userModal = document.getElementById('userModal');
@@ -3274,7 +3274,7 @@
             navLink.classList.add('active');
         }
         
-        // Load data based on section
+        // Загрузить данные в зависимости от раздела
         if (refreshFunctions[sectionId]) {
             refreshFunctions[sectionId]();
         }
