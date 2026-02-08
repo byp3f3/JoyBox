@@ -601,13 +601,11 @@
 
 {% block extra_js %}
 <script>
-    // Check if user is logged in
     const authToken = localStorage.getItem('authToken');
     if (!authToken) {
         window.location.href = '/login/';
     }
     
-    // Load user profile data
     function loadUserProfile() {
         fetch('/api/auth/profile/', {
             headers: {
@@ -625,7 +623,6 @@
             return response.json();
         })
         .then(data => {
-            // Populate form with user data
             document.getElementById('firstName').value = data.firstName || '';
             document.getElementById('lastName').value = data.lastName || '';
             document.getElementById('middleName').value = data.middleName || '';
@@ -633,11 +630,9 @@
             document.getElementById('phone').value = data.phone || '';
             document.getElementById('birthDate').value = data.birthDate || '';
             
-            // Update user info display
             document.getElementById('userName').textContent = `${data.firstName} ${data.lastName}`;
             document.getElementById('userEmail').textContent = data.email;
             
-            // Handle role-based UI
             handleRoleBasedUI(data.roleName);
             
         })
@@ -649,27 +644,20 @@
         });
     }
     
-    // Handle UI based on user role
     function handleRoleBasedUI(roleName) {
-        // Hide sections based on user role
         if (roleName === 'Ребенок') {
-            // Скрыть детям: детские аккаунты, адреса
             document.querySelector('a[href="#"][onclick="showSection(\'children\')"]').parentElement.style.display = 'none';
             document.querySelector('a[href="#"][onclick="showSection(\'addresses\')"]').parentElement.style.display = 'none';
             
-            // Hide profile form for children (they can't edit their data)
             document.getElementById('profileForm').style.display = 'none';
             
-            // Show child user data in a read-only format
             showChildUserData();
         } else if (roleName === 'Администратор' || roleName === 'Менеджер') {
-            // Hide addresses and children sections for admin/manager users
             document.querySelector('a[href="#"][onclick="showSection(\'addresses\')"]').parentElement.style.display = 'none';
             document.querySelector('a[href="#"][onclick="showSection(\'children\')"]').parentElement.style.display = 'none';
         }
     }
     
-    // Show child user data in read-only format
     function showChildUserData() {
         const personalInfoSection = document.getElementById('personal-info-section');
         const firstName = document.getElementById('firstName').value;
@@ -679,7 +667,6 @@
         const phone = document.getElementById('phone').value;
         const birthDate = document.getElementById('birthDate').value;
         
-        // Format birth date
         let formattedBirthDate = '';
         if (birthDate) {
             const date = new Date(birthDate);
@@ -728,7 +715,6 @@
         `;
     }
     
-    // Save profile changes
     document.getElementById('profileForm').addEventListener('submit', function(e) {
         e.preventDefault();
         
@@ -746,16 +732,13 @@
         const buttonText = document.getElementById('buttonText');
         const saveSpinner = document.getElementById('saveSpinner');
         
-        // Hide previous messages
         errorMessage.style.display = 'none';
         successMessage.style.display = 'none';
         
-        // Show loading state
         buttonText.style.display = 'none';
         saveSpinner.style.display = 'block';
         saveButton.disabled = true;
         
-        // Send update request
         fetch('/api/auth/profile/', {
             method: 'PUT',
             headers: {
@@ -777,46 +760,41 @@
             return response.json();
         })
         .then(data => {
-            // Update user info display
             document.getElementById('userName').textContent = `${data.firstName} ${data.lastName}`;
             
-            // Show success message
             successMessage.textContent = 'Профиль успешно обновлен';
             successMessage.style.display = 'block';
             
-            // Reset button
             buttonText.style.display = 'block';
             saveSpinner.style.display = 'none';
             saveButton.disabled = false;
         })
         .catch(error => {
-            // Show error message
             errorMessage.textContent = error.message;
             errorMessage.style.display = 'block';
             
-            // Reset button
             buttonText.style.display = 'block';
             saveSpinner.style.display = 'none';
             saveButton.disabled = false;
         });
     });
     
-    // Switch between profile sections
+    // Переключение между разделами профиля
     function showSection(sectionId) {
-        // Hide all sections
+        // Скрыть все секции
         document.querySelectorAll('.profile-section').forEach(section => {
             section.classList.remove('active');
         });
         
-        // Remove active class from all nav links
+        // Убрать класс active у всех ссылок навигации
         document.querySelectorAll('.profile-nav a').forEach(link => {
             link.classList.remove('active');
         });
         
-        // Show selected section
+        // Показать выбранную секцию
         document.getElementById(`${sectionId}-section`).classList.add('active');
         
-        // Mark nav link as active
+        // Отметить ссылку навигации как активную
         event.currentTarget.classList.add('active');
         
         if (sectionId === 'addresses') {
@@ -1163,13 +1141,13 @@
         });
     }
     
-    // Logout function
+    // Функция выхода
     function logout() {
         localStorage.removeItem('authToken');
         window.location.href = '/';
     }
     
-    // Initialize
+    // Инициализация
     document.addEventListener('DOMContentLoaded', function() {
         loadUserProfile();
     });

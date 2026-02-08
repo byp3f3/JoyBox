@@ -1,16 +1,5 @@
--- ============================================================
 -- Скрипт создания базы данных JoyBox
--- Запустите этот скрипт в pgAdmin для создания всех таблиц
--- ============================================================
-
--- 1. Создание базы данных (выполнить отдельно в pgAdmin)
--- CREATE DATABASE joybox;
-
--- После создания базы данных подключитесь к ней и выполните остальной скрипт
-
--- ============================================================
--- ТАБЛИЦЫ ПРИЛОЖЕНИЯ
--- ============================================================
+-- 1. Создание базы данных 
 
 -- Таблица ролей
 CREATE TABLE "role" (
@@ -245,10 +234,6 @@ CREATE TABLE "auditLog" (
 
 CREATE INDEX "auditLog_userId_idx" ON "auditLog" ("userId");
 
--- ============================================================
--- СВЯЗУЮЩИЕ ТАБЛИЦЫ (Many-to-Many для Django-авторизации)
--- ============================================================
-
 -- Таблица связи пользователь-группы (Django auth)
 CREATE TABLE "user_groups" (
     "id" BIGSERIAL PRIMARY KEY,
@@ -275,10 +260,6 @@ CREATE TABLE "user_user_permissions" (
 CREATE INDEX "user_user_permissions_user_id_idx" ON "user_user_permissions" ("user_id");
 CREATE INDEX "user_user_permissions_permission_id_idx" ON "user_user_permissions" ("permission_id");
 
--- ============================================================
--- НАЧАЛЬНЫЕ ДАННЫЕ
--- ============================================================
-
 -- Роли пользователей
 INSERT INTO "role" ("roleId", "roleName") VALUES
     (1, 'Покупатель'),
@@ -286,7 +267,6 @@ INSERT INTO "role" ("roleId", "roleName") VALUES
     (3, 'Менеджер'),
     (4, 'Администратор');
 
--- Сброс последовательности для roleId
 SELECT setval('"role_roleId_seq"', (SELECT MAX("roleId") FROM "role"));
 
 -- Статусы заказов
@@ -297,12 +277,7 @@ INSERT INTO "orderStatus" ("orderStatusId", "orderStatusName") VALUES
     (4, 'Доставлен'),
     (5, 'Отменен');
 
--- Сброс последовательности для orderStatusId
 SELECT setval('"orderStatus_orderStatusId_seq"', (SELECT MAX("orderStatusId") FROM "orderStatus"));
-
--- ============================================================
--- ОГРАНИЧЕНИЯ ЦЕЛОСТНОСТИ (CHECK, UNIQUE)
--- ============================================================
 
 -- Рейтинг отзыва: от 1 до 5
 ALTER TABLE "review"
@@ -384,9 +359,7 @@ ALTER TABLE "auditLog"
     ADD CONSTRAINT "auditLog_action_check"
     CHECK ("action" IN ('CREATE', 'UPDATE', 'DELETE'));
 
--- ============================================================
--- ПРЕДСТАВЛЕНИЯ (VIEW) для отчётности
--- ============================================================
+-- ПРЕДСТАВЛЕНИЯ 
 
 -- 1. Каталог товаров с категорией, брендом и средним рейтингом
 CREATE OR REPLACE VIEW v_product_catalog AS
@@ -394,16 +367,16 @@ SELECT
     p."productId",
     p."productName",
     p."price",
-    p."quantity"                                         AS "stockQuantity",
+    p."quantity" AS "stockQuantity",
     p."ageRating",
     c."categoryName",
     b."brandName",
     b."brandCountry",
-    COALESCE(ROUND(AVG(r."rating"), 2), 0)               AS "avgRating",
-    COUNT(r."reviewId")                                   AS "reviewCount"
+    COALESCE(ROUND(AVG(r."rating"), 2), 0) AS "avgRating",
+    COUNT(r."reviewId") AS "reviewCount"
 FROM "product" p
     JOIN "category" c ON p."categoryId" = c."categoryId"
-    JOIN "brand"    b ON p."brandId"    = b."brandId"
+    JOIN "brand" b ON p."brandId" = b."brandId"
     LEFT JOIN "review" r ON p."productId" = r."productId"
 GROUP BY p."productId", p."productName", p."price", p."quantity",
          p."ageRating", c."categoryName", b."brandName", b."brandCountry";
@@ -412,32 +385,32 @@ GROUP BY p."productId", p."productName", p."price", p."quantity",
 CREATE OR REPLACE VIEW v_order_details AS
 SELECT
     o."orderId",
-    u."firstName" || ' ' || u."lastName"                  AS "customerName",
-    u."email"                                             AS "customerEmail",
-    os."orderStatusName"                                  AS "status",
+    u."firstName" || ' ' || u."lastName" AS "customerName",
+    u."email" AS "customerEmail",
+    os."orderStatusName" AS "status",
     o."deliveryType",
     o."paymentType",
     o."paymentStatus",
     o."total",
-    o."createdAt"                                         AS "orderDate",
+    o."createdAt" AS "orderDate",
     oi."orderItemId",
     p."productName",
     oi."quantity",
     oi."unitPrice",
-    (oi."quantity" * oi."unitPrice")                       AS "lineTotal"
+    (oi."quantity" * oi."unitPrice") AS "lineTotal"
 FROM "order" o
-    JOIN "user"        u  ON o."userId"        = u."userId"
-    JOIN "orderStatus" os ON o."orderStatusId"  = os."orderStatusId"
-    JOIN "orderItem"   oi ON o."orderId"        = oi."orderId"
-    JOIN "product"     p  ON oi."productId"     = p."productId";
+    JOIN "user" u ON o."userId" = u."userId"
+    JOIN "orderStatus" os ON o."orderStatusId" = os."orderStatusId"
+    JOIN "orderItem" oi ON o."orderId" = oi."orderId"
+    JOIN "product" p ON oi."productId" = p."productId";
 
 -- 3. Отчёт по продажам — выручка и количество заказов по месяцам
 CREATE OR REPLACE VIEW v_sales_report AS
 SELECT
-    DATE_TRUNC('month', o."createdAt")::DATE              AS "month",
-    COUNT(DISTINCT o."orderId")                           AS "orderCount",
-    SUM(o."total")                                        AS "revenue",
-    ROUND(AVG(o."total"), 2)                              AS "avgOrderTotal"
+    DATE_TRUNC('month', o."createdAt")::DATE AS "month",
+    COUNT(DISTINCT o."orderId") AS "orderCount",
+    SUM(o."total") AS "revenue",
+    ROUND(AVG(o."total"), 2) AS "avgOrderTotal"
 FROM "order" o
     JOIN "orderStatus" os ON o."orderStatusId" = os."orderStatusId"
 WHERE os."orderStatusName" <> 'Отменен'
@@ -448,16 +421,16 @@ ORDER BY "month" DESC;
 CREATE OR REPLACE VIEW v_user_activity AS
 SELECT
     u."userId",
-    u."firstName" || ' ' || u."lastName"                  AS "fullName",
+    u."firstName" || ' ' || u."lastName" AS "fullName",
     u."email",
     r."roleName",
-    COUNT(DISTINCT o."orderId")                           AS "orderCount",
-    COALESCE(SUM(o."total"), 0)                           AS "totalSpent",
-    COUNT(DISTINCT rev."reviewId")                        AS "reviewCount",
-    u."createdAt"                                         AS "registeredAt"
+    COUNT(DISTINCT o."orderId") AS "orderCount",
+    COALESCE(SUM(o."total"), 0) AS "totalSpent",
+    COUNT(DISTINCT rev."reviewId") AS "reviewCount",
+    u."createdAt"  AS "registeredAt"
 FROM "user" u
-    JOIN "role"   r   ON u."roleId"  = r."roleId"
-    LEFT JOIN "order"  o   ON u."userId" = o."userId"
+    JOIN "role" r ON u."roleId" = r."roleId"
+    LEFT JOIN "order" o ON u."userId" = o."userId"
     LEFT JOIN "review" rev ON u."userId" = rev."userId"
 GROUP BY u."userId", u."firstName", u."lastName", u."email",
          r."roleName", u."createdAt";
@@ -468,40 +441,36 @@ SELECT
     p."productId",
     p."productName",
     c."categoryName",
-    SUM(oi."quantity")                                    AS "totalSold",
-    SUM(oi."quantity" * oi."unitPrice")                   AS "totalRevenue",
-    COALESCE(ROUND(AVG(r."rating"), 2), 0)               AS "avgRating"
+    SUM(oi."quantity") AS "totalSold",
+    SUM(oi."quantity" * oi."unitPrice") AS "totalRevenue",
+    COALESCE(ROUND(AVG(r."rating"), 2), 0) AS "avgRating"
 FROM "product" p
-    JOIN "category"  c  ON p."categoryId" = c."categoryId"
-    JOIN "orderItem" oi ON p."productId"  = oi."productId"
-    JOIN "order"     o  ON oi."orderId"   = o."orderId"
+    JOIN "category" c ON p."categoryId" = c."categoryId"
+    JOIN "orderItem" oi ON p."productId" = oi."productId"
+    JOIN "order" o ON oi."orderId" = o."orderId"
     JOIN "orderStatus" os ON o."orderStatusId" = os."orderStatusId"
     LEFT JOIN "review" r ON p."productId" = r."productId"
 WHERE os."orderStatusName" <> 'Отменен'
 GROUP BY p."productId", p."productName", c."categoryName"
 ORDER BY "totalSold" DESC;
 
--- ============================================================
--- ХРАНИМЫЕ ПРОЦЕДУРЫ (бизнес-операции)
--- ============================================================
-
+-- ХРАНИМЫЕ ПРОЦЕДУРЫ 
 -- 1. Оформление заказа из корзины
---    Переносит все позиции корзины пользователя в новый заказ,
---    уменьшает остатки на складе и очищает корзину.
+--    Переносит все позиции корзины пользователя в новый заказ, уменьшает остатки на складе и очищает корзину.
 CREATE OR REPLACE PROCEDURE sp_create_order_from_cart(
-    p_user_id   BIGINT,
+    p_user_id BIGINT,
     p_address_id BIGINT,
     p_delivery_type VARCHAR(20),
-    p_payment_type  VARCHAR(30)
+    p_payment_type VARCHAR(30)
 )
 LANGUAGE plpgsql
 AS $$
 DECLARE
-    v_order_id     BIGINT;
-    v_total        NUMERIC(10,2) := 0;
-    v_status_id    INTEGER;
-    v_cart_item    RECORD;
-    v_product_qty  INTEGER;
+    v_order_id BIGINT;
+    v_total NUMERIC(10,2) := 0;
+    v_status_id INTEGER;
+    v_cart_item RECORD;
+    v_product_qty INTEGER;
 BEGIN
     -- Проверка: корзина не пуста
     IF NOT EXISTS (SELECT 1 FROM "cart" WHERE "userId" = p_user_id) THEN
@@ -560,8 +529,7 @@ END;
 $$;
 
 -- 2. Отмена заказа с возвратом товара на склад
---    Меняет статус заказа на «Отменен», возвращает товары на склад,
---    меняет статус оплаты на «возврат средств» если было оплачено.
+--    Меняет статус заказа на «Отменен», возвращает товары на склад, меняет статус оплаты на «возврат средств» если было оплачено.
 CREATE OR REPLACE PROCEDURE sp_cancel_order(
     p_order_id BIGINT
 )
@@ -619,11 +587,10 @@ END;
 $$;
 
 -- 3. Пакетный пересчёт цен по категории (скидка / наценка)
---    Применяет процентное изменение цены ко всем товарам указанной категории.
---    Положительное значение — наценка, отрицательное — скидка.
+--    Применяет процентное изменение цены ко всем товарам указанной категории. Положительное значение — наценка, отрицательное — скидка.
 CREATE OR REPLACE PROCEDURE sp_adjust_prices_by_category(
-    p_category_id     INTEGER,
-    p_percent_change  NUMERIC(5,2)   -- например: -10.00 для скидки 10%
+    p_category_id INTEGER,
+    p_percent_change NUMERIC(5,2)   -- например: -10.00 для скидки 10%
 )
 LANGUAGE plpgsql
 AS $$
@@ -648,10 +615,7 @@ BEGIN
 END;
 $$;
 
--- ============================================================
 -- ФУНКЦИИ И ТРИГГЕРЫ ДЛЯ АУДИТА
--- ============================================================
-
 -- Универсальная функция аудита: записывает изменения в auditLog
 CREATE OR REPLACE FUNCTION fn_audit_log()
 RETURNS TRIGGER
@@ -676,7 +640,7 @@ BEGIN
     -- Получить ID записи и значения
     IF TG_OP = 'DELETE' THEN
         v_old_values := to_jsonb(OLD);
-        v_record_id  := OLD."productId";  -- будет перезаписан ниже для каждой таблицы
+        v_record_id  := 0; 
     ELSE
         v_new_values := to_jsonb(NEW);
     END IF;
@@ -697,7 +661,7 @@ BEGIN
             v_record_id := 0;
     END CASE;
 
-    -- Получить ID пользователя из сессии (устанавливается Django)
+    -- Получить ID пользователя из сессии 
     BEGIN
         v_user_id := current_setting('app.current_user_id')::BIGINT;
     EXCEPTION WHEN OTHERS THEN

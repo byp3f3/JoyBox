@@ -1,30 +1,19 @@
-"""
-Журнал аудита: запись действий администраторов и менеджеров в auditLog.
-Кто / когда / что менял (до/после).
-"""
+# Журнал аудита: запись действий администраторов и менеджеров в auditLog.
 from decimal import Decimal
 from django.utils import timezone
 from django.db import connection
 from .models import AuditLog
 
-
+# Устанавливаем ID текущего пользователя в сессии PostgreSQL.
 def set_audit_user(user):
-    """
-    Устанавливает ID текущего пользователя в сессии PostgreSQL.
-    Используется триггерами аудита (fn_audit_log) для записи,
-    кто именно выполнил операцию.
-    """
     if user and hasattr(user, 'pk') and user.pk:
         with connection.cursor() as cursor:
             cursor.execute("SET app.current_user_id = %s", [str(user.pk)])
 
-
-# Поля, которые не логируем (пароли и т.п.)
 SENSITIVE_FIELDS = frozenset({'password', 'password_hash'})
 
-
+# Приводим значение к виду, пригодному для JSON
 def _json_safe(val):
-    """Приводит значение к виду, пригодному для JSON (в т.ч. JSONField)."""
     if val is None:
         return None
     if hasattr(val, 'pk'):
@@ -41,9 +30,8 @@ def _json_safe(val):
         return {k: _json_safe(v) for k, v in val.items()}
     return str(val)
 
-
+# Преобразуем экземпляр модели в словарь для лога
 def model_to_log_dict(instance):
-    """Преобразует экземпляр модели в словарь для лога (JSON-сериализуемый)."""
     if instance is None:
         return None
     data = {}
@@ -59,7 +47,6 @@ def model_to_log_dict(instance):
 
 
 def get_pk(instance):
-    """Возвращает primary key значения экземпляра (число)."""
     if instance is None:
         return None
     pk = getattr(instance, 'pk', None)
@@ -71,17 +58,8 @@ def get_pk(instance):
             return int(getattr(instance, f.name, None))
     return None
 
-
+# Записываем действие в auditLog.
 def log_audit(user, action, table_name, record_id, old_values=None, new_values=None):
-    """
-    Записывает действие в auditLog.
-    user — экземпляр User (кто выполнил действие),
-    action — строка действия (например "CREATE", "UPDATE", "DELETE"),
-    table_name — имя таблицы/сущности,
-    record_id — id записи,
-    old_values / new_values — dict или None (до/после).
-    Ошибки записи не прерывают основной запрос.
-    """
     try:
         if user is None:
             return

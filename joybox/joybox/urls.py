@@ -18,13 +18,9 @@ from django.contrib import admin
 from django.urls import path, include
 from django.conf import settings
 from django.conf.urls.static import static
-from core.metrics_view import influxdb_metrics_view, influxdb_query_view
-
 urlpatterns = [
     path('admin/', admin.site.urls),
     path('', include('core.urls')),
-    path('influxdb/metrics/', influxdb_metrics_view, name='influxdb-metrics'),
-    path('influxdb/query/', influxdb_query_view, name='influxdb-query'),
 ]
 
 if settings.DEBUG:

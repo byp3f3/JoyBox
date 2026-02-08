@@ -172,7 +172,7 @@
     </div>
 </div>
 
-<!-- Popular Products Section -->
+<!-- Секция популярных товаров -->
 <div class="popular-products-section">
     <div class="container">
         <h2 class="section-title">Популярные товары</h2>
@@ -188,7 +188,7 @@
 
 {% block extra_js %}
 <script>
-    // Load popular products
+    // Загрузка популярных товаров
     async function loadPopularProducts() {
         const productsContainer = document.getElementById('popularProductsContainer');
         
@@ -207,7 +207,7 @@
         }
     }
     
-    // Display popular products
+    // Отображение популярных товаров
     function displayPopularProducts(products) {
         const productsContainer = document.getElementById('popularProductsContainer');
         
@@ -249,7 +249,7 @@
         `).join('');
     }
     
-    // Render star rating with half stars support
+    // Отрисовка рейтинга звёздами с поддержкой половинок
     function renderStars(rating) {
         if (!rating) return '<i class="far fa-star"></i>'.repeat(5);
         
@@ -257,17 +257,17 @@
         const hasHalfStar = rating % 1 >= 0.5;
         let starsHtml = '';
         
-        // Full stars
+        // Полные звёзды
         for (let i = 0; i < fullStars; i++) {
             starsHtml += '<i class="fas fa-star"></i>';
         }
         
-        // Half star
+        // Полу-звезда
         if (hasHalfStar) {
             starsHtml += '<i class="fas fa-star-half-alt"></i>';
         }
         
-        // Empty stars
+        // Пустые звёзды
         const emptyStars = 5 - fullStars - (hasHalfStar ? 1 : 0);
         for (let i = 0; i < emptyStars; i++) {
             starsHtml += '<i class="far fa-star"></i>';
@@ -276,7 +276,7 @@
         return starsHtml;
     }
     
-    // Initialize
+    // Инициализация
     document.addEventListener('DOMContentLoaded', function() {
         loadPopularProducts();
     });

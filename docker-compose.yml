@@ -1,0 +1,58 @@
+version: "3.9"
+
+services:
+  db:
+    image: postgres:17
+    restart: always
+    environment:
+      POSTGRES_DB: joybox
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ./create_database.sql:/docker-entrypoint-initdb.d/01-schema.sql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  web:
+    build: .
+    restart: always
+    ports:
+      - "8000:8000"
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      SECRET_KEY: django-insecure-docker-dev-key
+      DEBUG: "True"
+      ALLOWED_HOSTS: "*"
+      DB_ENGINE: django.db.backends.postgresql
+      DB_NAME: joybox
+      DB_USER: postgres
+      DB_PASSWORD: postgres
+      DB_HOST: db
+      DB_PORT: 5432
+      PG_BIN_PATH: /usr/bin
+    volumes:
+      - media_data:/app/joybox/media
+    command: >
+      sh -c "
+        if [ -d /app/seed_media/products ] && [ ! -f /app/joybox/media/.seed_done ]; then
+          mkdir -p /app/joybox/media/products &&
+          cp -a /app/seed_media/products/. /app/joybox/media/products/ &&
+          touch /app/joybox/media/.seed_done;
+          echo 'Seed media copied';
+        fi &&
+        python manage.py migrate &&
+        python manage.py seed_db &&
+        python manage.py runserver 0.0.0.0:8000
+      "
+
+volumes:
+  pgdata:
+  media_data:

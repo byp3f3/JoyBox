@@ -17,7 +17,6 @@ class BrandSerializer(serializers.ModelSerializer):
 
 
 class ProductImageSerializer(serializers.ModelSerializer):
-    """Один сериализатор для каталога и админки; productId только для чтения (в админке задаётся из URL)."""
     class Meta:
         model = ProductImage
         fields = ['productImageId', 'productId', 'url', 'altText', 'isMain']
@@ -25,7 +24,6 @@ class ProductImageSerializer(serializers.ModelSerializer):
 
 
 class ProductAttributeSerializer(serializers.ModelSerializer):
-    """Один сериализатор для каталога и админки; productId только для чтения (в админке задаётся из URL)."""
     class Meta:
         model = ProductAttribute
         fields = ['productAttributeId', 'productId', 'productAttributeName', 'productAttributeValue', 'productAttributeUnit']
@@ -99,18 +97,14 @@ class UserCreateUpdateSerializer(serializers.ModelSerializer):
         }
 
     def create(self, validated_data):
-        # Handle password
         password = validated_data.pop('password', None)
         
-        # Set username to email if not provided
         if 'username' not in validated_data or not validated_data['username']:
             validated_data['username'] = validated_data['email']
         
-        # Set createdAt to current time
         from django.utils import timezone
         validated_data['createdAt'] = timezone.now()
         
-        # Create user
         user = User(**validated_data)
         if password:
             user.set_password(password)
@@ -122,7 +116,6 @@ class UserCreateUpdateSerializer(serializers.ModelSerializer):
     def update(self, instance, validated_data):
         password = validated_data.pop('password', None)
         username = validated_data.pop('username', None)
-        # Роль меняем только если явно передан непустой roleId (иначе не трогаем)
         role_id = validated_data.pop('roleId', None)
         if username is not None:
             validated_data['username'] = username.strip() or instance.email
@@ -136,7 +129,6 @@ class UserCreateUpdateSerializer(serializers.ModelSerializer):
         return instance
     
     def to_representation(self, instance):
-        # Return data with role information for editing
         data = super().to_representation(instance)
         data['roleId'] = instance.roleId.roleId if instance.roleId else None
         data['roleName'] = instance.roleId.roleName if instance.roleId else None
@@ -165,22 +157,18 @@ class UserRegistrationSerializer(serializers.ModelSerializer):
     
     def create(self, validated_data):
         validated_data.pop('confirmPassword')
-        # Get or create the default role
         try:
             role, created = Role.objects.get_or_create(roleName='Покупатель')
             validated_data['roleId'] = role
         except Exception as e:
-            raise serializers.ValidationError(f"Ошибка при создании роли: {str(e)}")
+            raise serializers.ValidationError("Ошибка при назначении роли пользователю.")
         
-        # Set username to email if not provided
         if 'username' not in validated_data:
             validated_data['username'] = validated_data['email']
             
-        # Set createdAt to current time
         from django.utils import timezone
         validated_data['createdAt'] = timezone.now()
         
-        # Create user with proper password handling
         user = User(
             firstName=validated_data['firstName'],
             lastName=validated_data['lastName'],
@@ -207,7 +195,6 @@ class LoginSerializer(serializers.Serializer):
         if not email or not password:
             raise serializers.ValidationError('Необходимо указать email и пароль')
 
-        # Получаем пользователя по email (authenticate возвращает None для is_active=False)
         try:
             user = User.objects.get(email=email)
         except User.DoesNotExist:
@@ -240,7 +227,6 @@ class ReviewSerializer(serializers.ModelSerializer):
 
 
 class ReviewCreateSerializer(serializers.Serializer):
-    """Создание отзыва покупателем (только на купленные товары)."""
     productId = serializers.PrimaryKeyRelatedField(queryset=Product.objects.all(), required=True)
     rating = serializers.IntegerField(min_value=1, max_value=5, required=True)
     reviewText = serializers.CharField(required=False, allow_blank=True)
@@ -252,7 +238,6 @@ class ReviewCreateSerializer(serializers.Serializer):
 
 
 class ReviewUpdateSerializer(serializers.Serializer):
-    """Редактирование отзыва (рейтинг и текст)."""
     rating = serializers.IntegerField(min_value=1, max_value=5, required=True)
     reviewText = serializers.CharField(required=False, allow_blank=True)
 
@@ -303,7 +288,6 @@ class WishlistCreateSerializer(serializers.ModelSerializer):
 
 
 def _child_age_ok(birth_date):
-    """Ребёнок не старше 18: дата рождения должна давать возраст <= 18."""
     if not birth_date:
         return False
     today = date.today()
@@ -312,7 +296,6 @@ def _child_age_ok(birth_date):
 
 
 class ChildAccountSerializer(serializers.Serializer):
-    """Данные привязанного детского аккаунта (для просмотра/списка)."""
     parentChildId = serializers.IntegerField(read_only=True)
     userId = serializers.IntegerField(read_only=True)
     firstName = serializers.CharField(read_only=True)
@@ -338,7 +321,6 @@ class ChildAccountSerializer(serializers.Serializer):
 
 
 class ChildAccountCreateSerializer(serializers.Serializer):
-    """Создание детского аккаунта с полными данными (родителем-покупателем)."""
     firstName = serializers.CharField(required=True, max_length=100)
     lastName = serializers.CharField(required=True, max_length=100)
     middleName = serializers.CharField(required=False, allow_blank=True, allow_null=True, max_length=100)
@@ -380,7 +362,6 @@ class ChildAccountCreateSerializer(serializers.Serializer):
 
 
 class ChildAccountUpdateSerializer(serializers.Serializer):
-    """Редактирование данных привязанного ребёнка (родителем)."""
     firstName = serializers.CharField(required=False, max_length=100)
     lastName = serializers.CharField(required=False, max_length=100)
     middleName = serializers.CharField(required=False, allow_blank=True, allow_null=True, max_length=100)
@@ -401,7 +382,6 @@ class ChildAccountUpdateSerializer(serializers.Serializer):
 
 
 class CartItemSerializer(serializers.Serializer):
-    """Один элемент корзины с ценой и суммой по позиции."""
     cartId = serializers.IntegerField(read_only=True)
     productId = serializers.IntegerField(read_only=True)
     productName = serializers.CharField(read_only=True)
@@ -416,7 +396,6 @@ class CartItemSerializer(serializers.Serializer):
         return ProductImageSerializer(img).data if img else None
 
     def to_representation(self, instance):
-        # instance is Cart
         product = instance.productId
         price = product.price
         qty = instance.quantity
@@ -435,7 +414,6 @@ class CartItemSerializer(serializers.Serializer):
 
 
 class CartListSerializer(serializers.Serializer):
-    """Корзина: список позиций и общая сумма."""
     items = CartItemSerializer(many=True, read_only=True)
     total = serializers.DecimalField(max_digits=12, decimal_places=2, read_only=True)
 
@@ -496,7 +474,6 @@ class OrderSerializer(serializers.ModelSerializer):
 
 
 class UserOrderSerializer(serializers.ModelSerializer):
-    """Заказ покупателя для списка."""
     status = serializers.CharField(source='orderStatusId.orderStatusName', read_only=True)
     deliveryTypeLabel = serializers.SerializerMethodField()
     paymentTypeLabel = serializers.SerializerMethodField()
@@ -526,12 +503,10 @@ class OrderItemSerializer(serializers.ModelSerializer):
         fields = ['orderItemId', 'productId', 'productName', 'quantity', 'unitPrice', 'userHasReview']
     
     def get_userHasReview(self, obj):
-        """Покупатель (владелец заказа) уже оставил отзыв на этот товар."""
         return Review.objects.filter(productId=obj.productId, userId=obj.orderId.userId).exists()
 
 
 class UserOrderDetailSerializer(serializers.ModelSerializer):
-    """Детали заказа покупателя."""
     status = serializers.CharField(source='orderStatusId.orderStatusName', read_only=True)
     address = AddressBriefSerializer(source='addressId', read_only=True)
     items = OrderItemSerializer(many=True, read_only=True, source='orderitem_set')
@@ -558,7 +533,6 @@ class UserOrderDetailSerializer(serializers.ModelSerializer):
 
 
 class PaymentProcessSerializer(serializers.Serializer):
-    """Эмуляция оплаты онлайн."""
     orderId = serializers.IntegerField()
     cardNumber = serializers.CharField(max_length=19, min_length=16)
     cardHolder = serializers.CharField(max_length=100)
@@ -599,7 +573,6 @@ class AddressCreateSerializer(serializers.ModelSerializer):
 
 
 class CheckoutCreateSerializer(serializers.Serializer):
-    """Оформление заказа: сначала тип доставки, затем адрес (если не самовывоз), оплата."""
     deliveryType = serializers.ChoiceField(choices=Order.DELIVERY_TYPE_CHOICES)
     addressId = serializers.PrimaryKeyRelatedField(
         queryset=Address.objects.none(),
@@ -621,7 +594,6 @@ class CheckoutCreateSerializer(serializers.Serializer):
         new_address = attrs.get('newAddress')
 
         if delivery == Order.DELIVERY_PICKUP:
-            # Самовывоз — адрес не нужен, подставится автоматически
             return attrs
 
         if address_id and new_address:
@@ -669,9 +641,7 @@ class ProductCreateUpdateSerializer(serializers.ModelSerializer):
         ]
     
     def to_representation(self, instance):
-        # Return raw data for editing, not the nested representation
         data = super().to_representation(instance)
-        # Ensure we have the IDs for foreign keys
         data['categoryId'] = instance.categoryId.categoryId if instance.categoryId else None
         data['brandId'] = instance.brandId.brandId if instance.brandId else None
         return data

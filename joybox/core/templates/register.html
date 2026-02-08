@@ -210,7 +210,6 @@
     document.getElementById('registerForm').addEventListener('submit', function(e) {
         e.preventDefault();
         
-        // Get form data
         const formData = {
             firstName: document.getElementById('firstName').value,
             lastName: document.getElementById('lastName').value,
@@ -227,22 +226,18 @@
         const buttonText = document.getElementById('buttonText');
         const registerSpinner = document.getElementById('registerSpinner');
         
-        // Hide previous errors
         errorMessage.style.display = 'none';
         
-        // Validate passwords match
         if (formData.password !== formData.confirmPassword) {
             errorMessage.textContent = 'Пароли не совпадают';
             errorMessage.style.display = 'block';
             return;
         }
         
-        // Show loading state
         buttonText.style.display = 'none';
         registerSpinner.style.display = 'block';
         registerButton.disabled = true;
         
-        // Send registration request
         fetch('/api/auth/register/', {
             method: 'POST',
             headers: {
@@ -269,18 +264,14 @@
             return response.json();
         })
         .then(data => {
-            // Store token in localStorage
             localStorage.setItem('authToken', data.token);
             
-            // Redirect to profile or home page
             window.location.href = '/';
         })
         .catch(error => {
-            // Show error message
             errorMessage.textContent = error.message;
             errorMessage.style.display = 'block';
             
-            // Reset button
             buttonText.style.display = 'block';
             registerSpinner.style.display = 'none';
             registerButton.disabled = false;

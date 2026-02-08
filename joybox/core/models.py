@@ -1,8 +1,6 @@
 from django.db import models
 from django.contrib.auth.models import AbstractUser
 
-# Create your models here.
-
 class Role(models.Model):
     roleId = models.AutoField(primary_key=True)
     roleName = models.CharField(max_length=100, verbose_name='Название роли')
@@ -28,14 +26,11 @@ class User(AbstractUser):
     phone = models.CharField(max_length=11, verbose_name='Телефон')
     birthDate = models.DateField(verbose_name='Дата рождения')
     createdAt = models.DateTimeField(verbose_name='Дата создания')
-    
-    # Override username field to make it non-unique (email will be used for login)
     username = models.CharField(max_length=150, unique=False, verbose_name='Имя пользователя')
     
     USERNAME_FIELD = 'email'
     REQUIRED_FIELDS = ['username']
-    
-    # Add related_name to avoid clashes with auth.User
+
     groups = models.ManyToManyField(
         'auth.Group',
         related_name='core_user_set',
@@ -184,7 +179,6 @@ class OrderStatus(models.Model):
         return str(self.orderStatusName)
 
 class Order(models.Model):
-    # Define choices for delivery type
     DELIVERY_PICKUP = 'самовывоз'
     DELIVERY_POINT = 'пункт выдачи'
     DELIVERY_COURIER = 'курьером'
@@ -195,7 +189,6 @@ class Order(models.Model):
         (DELIVERY_COURIER, 'Курьером'),
     ]
     
-    # Define choices for payment type
     PAYMENT_ONLINE = 'онлайн'
     PAYMENT_CARD = 'картой при получении'
     PAYMENT_CASH = 'наличными при получении'
@@ -206,7 +199,6 @@ class Order(models.Model):
         (PAYMENT_CASH, 'Наличными при получении'),
     ]
     
-    # Define choices for payment status
     PAYMENT_STATUS_PENDING = 'ждет оплаты'
     PAYMENT_STATUS_PAID = 'оплачено'
     PAYMENT_STATUS_REFUND = 'возврат средств'

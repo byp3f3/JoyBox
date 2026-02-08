@@ -173,7 +173,7 @@
         color: #991b1b;
     }
     
-    /* Modal Styles */
+    /* Стили модальных окон */
     .modal {
         display: none;
         position: fixed;
@@ -334,7 +334,7 @@
     .order-item-card .order-item-meta { font-size: 13px; color: #6c757d; margin-bottom: 4px; }
     .order-item-card .order-item-sum { font-weight: 600; color: var(--primary-color); }
     
-    /* Hotkeys styles */
+    /* Стили горячих клавиш */
     .hotkey-hint {
         display: inline-block;
         background: rgba(0, 0, 0, 0.1);
@@ -434,7 +434,7 @@
         display: none;
     }
     
-    /* Analytics styles */
+    /* Стили аналитики */
     .analytics-filters {
         display: flex;
         gap: 15px;
@@ -709,6 +709,8 @@
             <a href="#" onclick="showAdminSection('reviews')" data-section="reviews">Отзывы <span class="hotkey-hint">Alt+7</span></a>
             <a href="#" class="admin-only-nav" data-section="logs" onclick="showAdminSection('logs')">Журналы <span class="hotkey-hint">Alt+8</span></a>
             <a href="#" class="admin-only-nav" data-section="analytics" onclick="showAdminSection('analytics')">Аналитика <span class="hotkey-hint">Alt+9</span></a>
+            <a href="#" class="admin-only-nav" data-section="data-io" onclick="showAdminSection('data-io')">Импорт/Экспорт</a>
+            <a href="#" class="admin-only-nav" data-section="backups" onclick="showAdminSection('backups')">Бэкапы <span class="hotkey-hint">Alt+0</span></a>
         </div>
         
         <div class="admin-content">
@@ -879,15 +881,69 @@
                             <th>Действие</th>
                             <th>Таблица</th>
                             <th>ID записи</th>
-                            <th>Старые значения</th>
-                            <th>Новые значения</th>
+                            <th>Просмотр</th>
                         </tr>
                     </thead>
                     <tbody id="auditLogsTableBody">
-                        <tr><td colspan="8" style="text-align: center;">Загрузка...</td></tr>
+                        <tr><td colspan="7" style="text-align: center;">Загрузка...</td></tr>
                     </tbody>
                 </table>
                 <button class="btn-admin" onclick="loadAuditLogsData()">Обновить</button>
+            </div>
+            
+            <!-- Раздел Импорт/Экспорт -->
+            <div class="admin-section admin-only-section" id="data-io-section">
+                <h2>Импорт / Экспорт данных</h2>
+                
+                <!-- Экспорт -->
+                <div style="background: var(--bg-light); border-radius: 12px; padding: 20px; margin-bottom: 20px; border: 1px solid var(--border-muted);">
+                    <h3 style="margin-top: 0; font-size: 1.1rem;">Экспорт таблиц</h3>
+                    <p style="color: var(--text-light); margin-bottom: 15px;">Скачайте данные таблиц в формате CSV или SQL (INSERT-скрипт).</p>
+                    <div style="display: flex; gap: 12px; align-items: flex-end; flex-wrap: wrap; margin-bottom: 15px;">
+                        <div class="form-group" style="margin-bottom: 0;">
+                            <label for="exportTable">Таблица</label>
+                            <select id="exportTable" class="form-control" style="min-width: 200px;">
+                                <option value="product">Товары (product)</option>
+                                <option value="category">Категории (category)</option>
+                                <option value="brand">Бренды (brand)</option>
+                                <option value="order">Заказы (order)</option>
+                                <option value="user">Пользователи (user)</option>
+                                <option value="review">Отзывы (review)</option>
+                                <option value="auditlog">Журнал аудита (auditLog)</option>
+                            </select>
+                        </div>
+                        <div class="form-group" style="margin-bottom: 0;">
+                            <label for="exportFormat">Формат</label>
+                            <select id="exportFormat" class="form-control" style="min-width: 140px;">
+                                <option value="csv">CSV</option>
+                                <option value="sql">SQL (INSERT)</option>
+                            </select>
+                        </div>
+                        <button class="btn-admin" onclick="exportTableData()" style="height: 42px;">Экспортировать</button>
+                    </div>
+                </div>
+                
+                <!-- Импорт -->
+                <div style="background: var(--bg-light); border-radius: 12px; padding: 20px; border: 1px solid var(--border-muted);">
+                    <h3 style="margin-top: 0; font-size: 1.1rem;">Импорт данных из CSV</h3>
+                    <p style="color: var(--text-light); margin-bottom: 15px;">Загрузите CSV-файл для импорта данных в выбранную таблицу. Первая строка CSV должна содержать заголовки столбцов.</p>
+                    <div style="display: flex; gap: 12px; align-items: flex-end; flex-wrap: wrap; margin-bottom: 15px;">
+                        <div class="form-group" style="margin-bottom: 0;">
+                            <label for="importTable">Таблица</label>
+                            <select id="importTable" class="form-control" style="min-width: 200px;">
+                                <option value="product">Товары (product)</option>
+                                <option value="category">Категории (category)</option>
+                                <option value="brand">Бренды (brand)</option>
+                            </select>
+                        </div>
+                        <div class="form-group" style="margin-bottom: 0;">
+                            <label for="importFile">CSV-файл</label>
+                            <input type="file" id="importFile" accept=".csv" class="form-control" style="min-width: 250px;">
+                        </div>
+                        <button class="btn-admin" onclick="importCsvData()" style="height: 42px;">Импортировать</button>
+                    </div>
+                    <div id="importResult" style="display: none; padding: 12px; border-radius: 8px; margin-top: 10px;"></div>
+                </div>
             </div>
             
             <!-- Раздел Аналитика -->
@@ -1188,10 +1244,100 @@
                     </div>
                 </div>
             </div>
+            
+            <!-- Раздел Бэкапы -->
+            <div class="admin-section admin-only-section" id="backups-section">
+                <h2>Резервное копирование и восстановление</h2>
+                
+                <!-- Создание бэкапа -->
+                <div style="background: var(--bg-light); border-radius: 12px; padding: 20px; margin-bottom: 20px; border: 1px solid var(--border-muted);">
+                    <h3 style="margin-top: 0; font-size: 1.1rem;">Создать резервную копию</h3>
+                    <div style="display: flex; gap: 12px; align-items: flex-end; flex-wrap: wrap;">
+                        <div class="form-group" style="margin-bottom: 0;">
+                            <label for="backupFormat">Формат</label>
+                            <select id="backupFormat" class="form-control" style="min-width: 180px;">
+                                <option value="custom">Custom (.backup) — сжатый</option>
+                                <option value="sql">SQL (.sql) — текстовый</option>
+                            </select>
+                        </div>
+                        <div class="form-group" style="margin-bottom: 0;">
+                            <label>
+                                <input type="checkbox" id="backupDataOnly" style="margin-right: 6px;">
+                                Только данные
+                            </label>
+                        </div>
+                        <button class="btn-admin" onclick="createBackup()" id="createBackupBtn" style="height: 42px;">
+                            Создать бэкап
+                        </button>
+                    </div>
+                    <div id="backupCreateResult" style="display: none; padding: 10px; border-radius: 8px; margin-top: 12px;"></div>
+                </div>
+                
+                <!-- Информация о регламенте -->
+                <div style="background: #eff6ff; border: 1px solid #3b82f6; border-radius: 12px; padding: 16px; margin-bottom: 20px;">
+                    <h4 style="margin-top: 0; color: #1d4ed8;">Регламент резервного копирования</h4>
+                    <ul style="margin: 0; padding-left: 20px; color: #1e40af; line-height: 1.8;">
+                        <li><strong>Ежедневно</strong> — автоматический бэкап через скрипт <code>scripts/backup.bat</code> (планировщик задач Windows / cron)</li>
+                        <li><strong>Перед обновлениями</strong> — ручной бэкап через эту панель или команду <code>python manage.py backup_db</code></li>
+                        <li><strong>Хранение</strong> — последние <span id="backupMaxCount">10</span> копий, старые удаляются автоматически</li>
+                        <li><strong>Восстановление</strong> — через панель, скрипт <code>scripts/restore.bat</code> или <code>python manage.py restore_db --latest</code></li>
+                    </ul>
+                </div>
+                
+                <!-- Список бэкапов -->
+                <h3>Существующие резервные копии</h3>
+                <button class="btn-admin" style="margin-bottom: 15px;" onclick="loadBackupsList()">Обновить список</button>
+                <div id="backupsTableContainer">
+                    <table class="admin-table">
+                        <thead>
+                            <tr>
+                                <th>Файл</th>
+                                <th>Формат</th>
+                                <th>Размер</th>
+                                <th>Дата создания</th>
+                                <th>Действия</th>
+                            </tr>
+                        </thead>
+                        <tbody id="backupsTableBody">
+                            <tr><td colspan="5" style="text-align: center;">Загрузка...</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
         </div>
     </div>
     
-    <!-- Product Modal -->
+    <!-- Модальное окно деталей журнала аудита -->
+    <div id="auditLogModal" class="modal">
+        <div class="modal-content" style="max-width: 700px;">
+            <div class="modal-header">
+                <h3>Запись журнала аудита</h3>
+                <span class="close" onclick="closeAuditLogModal()">&times;</span>
+            </div>
+            <div id="auditLogDetail" style="padding: 15px;">
+                <div style="display: grid; grid-template-columns: 140px 1fr; gap: 8px 12px; margin-bottom: 20px;">
+                    <strong>ID:</strong> <span id="auditDetailId"></span>
+                    <strong>Дата:</strong> <span id="auditDetailDate"></span>
+                    <strong>Пользователь:</strong> <span id="auditDetailUser"></span>
+                    <strong>Действие:</strong> <span id="auditDetailAction"></span>
+                    <strong>Таблица:</strong> <span id="auditDetailTable"></span>
+                    <strong>ID записи:</strong> <span id="auditDetailRecordId"></span>
+                </div>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+                    <div>
+                        <h4 style="margin: 0 0 8px 0; color: #dc2626;">Старые значения</h4>
+                        <pre id="auditDetailOld" style="background: var(--bg-light); border: 1px solid var(--border-muted); border-radius: 8px; padding: 12px; white-space: pre-wrap; word-break: break-word; max-height: 400px; overflow-y: auto; font-size: 0.85rem;">—</pre>
+                    </div>
+                    <div>
+                        <h4 style="margin: 0 0 8px 0; color: #10b981;">Новые значения</h4>
+                        <pre id="auditDetailNew" style="background: var(--bg-light); border: 1px solid var(--border-muted); border-radius: 8px; padding: 12px; white-space: pre-wrap; word-break: break-word; max-height: 400px; overflow-y: auto; font-size: 0.85rem;">—</pre>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Модальное окно товара -->
     <div id="productModal" class="modal">
         <div class="modal-content">
             <div class="modal-header">
@@ -1297,7 +1443,7 @@
         </div>
     </div>
     
-    <!-- User Modal -->
+    <!-- Модальное окно пользователя -->
     <div id="userModal" class="modal">
         <div class="modal-content">
             <div class="modal-header">
@@ -1353,7 +1499,7 @@
         </div>
     </div>
     
-    <!-- Category Modal -->
+    <!-- Модальное окно категории -->
     <div id="categoryModal" class="modal">
         <div class="modal-content">
             <div class="modal-header">
@@ -1378,7 +1524,7 @@
         </div>
     </div>
     
-    <!-- Brand Modal -->
+    <!-- Модальное окно бренда -->
     <div id="brandModal" class="modal">
         <div class="modal-content">
             <div class="modal-header">
@@ -1407,7 +1553,7 @@
         </div>
     </div>
     
-    <!-- Hotkeys Help Panel -->
+    <!-- Панель справки по горячим клавишам -->
     <button class="hotkeys-toggle" onclick="toggleHotkeysHelp()" title="Горячие клавиши (Alt+H)">⌨</button>
     <div id="hotkeysHelp" class="hotkeys-help">
         <h4>
@@ -1432,7 +1578,7 @@
         </div>
     </div>
     
-    <!-- Order Detail Modal -->
+    <!-- Модальное окно деталей заказа -->
     <div id="orderModal" class="modal">
         <div class="modal-content" style="max-width: 700px;">
             <div class="modal-header">
@@ -1484,13 +1630,13 @@
 <!-- Chart.js для визуализаций -->
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
 <script>
-    // Check if user is logged in and has admin rights
+    // Проверка авторизации и прав администратора
     const authToken = localStorage.getItem('authToken');
     if (!authToken) {
         window.location.href = '/login/';
     }
     
-    // Verify admin access
+    // Проверка доступа администратора
     fetch('/api/admin/panel/', {
         headers: {
             'Authorization': `Token ${authToken}`
@@ -1498,7 +1644,7 @@
     })
     .then(response => {
         if (!response.ok) {
-            // If not authorized, redirect to login
+            // При отсутствии авторизации перенаправить на вход
             localStorage.removeItem('authToken');
             window.location.href = '/login/';
             return;
@@ -1524,7 +1670,7 @@
         window.location.href = '/login/';
     });
     
-    // Load dashboard statistics
+    // Загрузка статистики панели
     function loadDashboardStats() {
         fetch('/api/admin/dashboard/', {
             headers: {
@@ -1548,7 +1694,7 @@
         });
     }
     
-    // Load products data
+    // Загрузка данных товаров
     function loadProductsData() {
         fetch('/api/admin/products/', {
             headers: {
@@ -1587,7 +1733,7 @@
         });
     }
     
-    // Load users data
+    // Загрузка данных пользователей
     function loadUsersData() {
         fetch('/api/admin/users/', {
             headers: {
@@ -1633,7 +1779,7 @@
         });
     }
     
-    // Load orders data
+    // Загрузка данных заказов
     function loadOrdersData() {
         fetch('/api/admin/orders/', {
             headers: {
@@ -1836,63 +1982,91 @@
     }
     
     // --- Мониторинг системных журналов (auditLog) ---
+    let auditLogsCache = [];
+    
     function loadAuditLogsData() {
         fetch('/api/admin/audit-logs/', {
             headers: { 'Authorization': `Token ${authToken}` }
         })
         .then(r => r.json())
         .then(data => {
+            auditLogsCache = data || [];
             const tbody = document.getElementById('auditLogsTableBody');
             if (!data || data.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="8" style="text-align: center;">Нет записей</td></tr>';
+                tbody.innerHTML = '<tr><td colspan="7" style="text-align: center;">Нет записей</td></tr>';
                 return;
             }
-            const formatJson = (v) => {
-                if (v == null) return '—';
-                try { return typeof v === 'object' ? JSON.stringify(v) : String(v); } catch (e) { return String(v); }
-            };
-            const trunc = (s, len) => {
-                if (s == null) return '—';
-                const str = typeof s === 'object' ? JSON.stringify(s) : String(s);
-                return str.length > (len || 80) ? str.slice(0, len) + '…' : str;
-            };
-            tbody.innerHTML = data.map(log => `
+            const actionLabels = { 'CREATE': 'Создание', 'UPDATE': 'Изменение', 'DELETE': 'Удаление' };
+            const actionColors = { 'CREATE': '#10b981', 'UPDATE': '#f59e0b', 'DELETE': '#ef4444' };
+            tbody.innerHTML = data.map((log, idx) => {
+                const action = log.action || '—';
+                const color = actionColors[action] || '#6b7280';
+                const label = actionLabels[action] || action;
+                return `
                 <tr>
                     <td>${log.auditLogId}</td>
                     <td>${log.createdAt ? new Date(log.createdAt).toLocaleString('ru-RU') : '—'}</td>
                     <td>${escapeHtml(log.userDisplay || log.userId || '—')}</td>
-                    <td>${escapeHtml(log.action || '—')}</td>
+                    <td><span style="color: ${color}; font-weight: 600;">${escapeHtml(label)}</span></td>
                     <td>${escapeHtml(log.tableName || '—')}</td>
                     <td>${log.recordId != null ? log.recordId : '—'}</td>
-                    <td style="max-width: 180px; overflow: hidden; text-overflow: ellipsis;" title="${escapeHtml(trunc(log.oldValues, 200))}">${escapeHtml(trunc(log.oldValues, 50))}</td>
-                    <td style="max-width: 180px; overflow: hidden; text-overflow: ellipsis;" title="${escapeHtml(trunc(log.newValues, 200))}">${escapeHtml(trunc(log.newValues, 50))}</td>
+                    <td><button class="btn-admin" style="padding: 4px 12px; font-size: 0.85rem;" onclick="openAuditLogModal(${idx})">Подробнее</button></td>
                 </tr>
-            `).join('');
+                `;
+            }).join('');
         })
         .catch(() => {
-            document.getElementById('auditLogsTableBody').innerHTML = '<tr><td colspan="8" style="text-align: center;">Ошибка загрузки</td></tr>';
+            document.getElementById('auditLogsTableBody').innerHTML = '<tr><td colspan="7" style="text-align: center;">Ошибка загрузки</td></tr>';
         });
     }
     
-    // Switch between admin sections
+    function formatJsonPretty(val) {
+        if (val == null) return '—';
+        try {
+            const obj = typeof val === 'string' ? JSON.parse(val) : val;
+            return JSON.stringify(obj, null, 2);
+        } catch (e) {
+            return String(val);
+        }
+    }
+    
+    function openAuditLogModal(idx) {
+        const log = auditLogsCache[idx];
+        if (!log) return;
+        document.getElementById('auditDetailId').textContent = log.auditLogId;
+        document.getElementById('auditDetailDate').textContent = log.createdAt ? new Date(log.createdAt).toLocaleString('ru-RU') : '—';
+        document.getElementById('auditDetailUser').textContent = log.userDisplay || log.userId || '—';
+        document.getElementById('auditDetailAction').textContent = log.action || '—';
+        document.getElementById('auditDetailTable').textContent = log.tableName || '—';
+        document.getElementById('auditDetailRecordId').textContent = log.recordId != null ? log.recordId : '—';
+        document.getElementById('auditDetailOld').textContent = formatJsonPretty(log.oldValues);
+        document.getElementById('auditDetailNew').textContent = formatJsonPretty(log.newValues);
+        document.getElementById('auditLogModal').style.display = 'block';
+    }
+    
+    function closeAuditLogModal() {
+        document.getElementById('auditLogModal').style.display = 'none';
+    }
+    
+    // Переключение между разделами админ-панели
     function showAdminSection(sectionId) {
-        // Hide all sections
+        // Скрыть все секции
         document.querySelectorAll('.admin-section').forEach(section => {
             section.classList.remove('active');
         });
         
-        // Remove active class from all nav links
+        // Убрать класс active у всех ссылок навигации
         document.querySelectorAll('.admin-nav a').forEach(link => {
             link.classList.remove('active');
         });
         
-        // Show selected section
+        // Показать выбранную секцию
         document.getElementById(`${sectionId}-section`).classList.add('active');
         
-        // Mark nav link as active
+        // Отметить ссылку навигации как активную
         event.currentTarget.classList.add('active');
         
-        // Load data based on section
+        // Загрузить данные в зависимости от раздела
         if (sectionId === 'dashboard') {
             loadDashboardStats();
         } else if (sectionId === 'products') {
@@ -1912,17 +2086,17 @@
         }
     }
     
-    // Logout function
+    // Функция выхода
     function logout() {
         localStorage.removeItem('authToken');
         window.location.href = '/';
     }
     
-    // Product CRUD Functions
+    // Функции CRUD товаров
     
-    // Load categories and brands for dropdowns
+    // Загрузка категорий и брендов для выпадающих списков
     function loadCategoriesAndBrands() {
-        // Load categories
+        // Загрузка категорий
         fetch('/api/catalog/categories/')
             .then(response => response.json())
             .then(categories => {
@@ -1937,7 +2111,7 @@
             })
             .catch(error => console.error('Error loading categories:', error));
         
-        // Load brands
+        // Загрузка брендов
         fetch('/api/catalog/brands/')
             .then(response => response.json())
             .then(brands => {
@@ -1953,21 +2127,21 @@
             .catch(error => console.error('Error loading brands:', error));
     }
     
-    // Open product modal for creation
+    // Открыть модальное окно товара для создания
     function openProductModal(productId = null) {
         loadCategoriesAndBrands();
-        clearAttributes(); // Clear attributes when opening modal
+        clearAttributes(); // Очистить атрибуты при открытии модального окна
         
         const modal = document.getElementById('productModal');
         const form = document.getElementById('productForm');
         const title = document.getElementById('modalTitle');
         
         if (productId) {
-            // Edit mode
+            // Режим редактирования
             title.textContent = 'Редактировать продукт';
             document.getElementById('productId').value = productId;
             
-            // Load product data
+            // Загрузка данных товара
             fetch(`/api/admin/products/${productId}/`, {
                 headers: {
                     'Authorization': `Token ${authToken}`
@@ -1987,20 +2161,20 @@
                 console.log('Images:', product.images);
                 console.log('=========================');
                 
-                // Small delay to ensure dropdowns are populated
+                // Небольшая задержка для заполнения выпадающих списков
                 setTimeout(() => {
-                    // Populate basic fields
+                    // Заполнить основные поля
                     document.getElementById('productName').value = product.productName;
                     document.getElementById('productDescription').value = product.productDescription || '';
                     
-                    // Handle category - try both direct ID and nested object
+                    // Обработка категории — попробовать прямой ID и вложенный объект
                     const categoryId = product.categoryId || (product.category ? product.category.categoryId : null);
                     if (categoryId) {
                         document.getElementById('categoryId').value = categoryId;
                         console.log('Set category ID to:', categoryId);
                     }
                     
-                    // Handle brand - try both direct ID and nested object
+                    // Обработка бренда — попробовать прямой ID и вложенный объект
                     const brandId = product.brandId || (product.brand ? product.brand.brandId : null);
                     if (brandId) {
                         document.getElementById('brandId').value = brandId;
@@ -2013,11 +2187,11 @@
                     document.getElementById('weightKg').value = product.weightKg || '';
                     document.getElementById('dimensions').value = product.dimensions || '';
                     
-                    // Debug final values
+                    // Отладочные финальные значения
                     console.log('Final category dropdown value:', document.getElementById('categoryId').value);
                     console.log('Final brand dropdown value:', document.getElementById('brandId').value);
                     
-                    // Load product attributes if they exist
+                    // Загрузить атрибуты товара, если они есть
                     const attributes = product.attributes;
                     if (attributes && attributes.length > 0) {
                         console.log('Found attributes to load:', attributes);
@@ -2039,14 +2213,14 @@
                         document.getElementById('existingImagesBlock').style.display = 'none';
                         document.getElementById('existingImagesList').innerHTML = '';
                     }
-                }, 100); // 100ms delay
+                }, 100); // Задержка 100 мс
             })
             .catch(error => {
                 console.error('Error loading product:', error);
                 alert('Ошибка при загрузке данных продукта');
             });
         } else {
-            // Create mode
+            // Режим создания
             title.textContent = 'Добавить продукт';
             document.getElementById('productId').value = '';
             form.reset();
@@ -2058,18 +2232,18 @@
         modal.style.display = 'block';
     }
     
-    // Close product modal
+    // Закрыть модальное окно товара
     function closeProductModal() {
         document.getElementById('productModal').style.display = 'none';
         document.getElementById('productForm').reset();
         document.getElementById('productId').value = '';
         document.getElementById('productImages').value = '';
         clearAttributes();
-        // Reset age rating dropdown specifically
+        // Сбросить выпадающий список возраста
         document.getElementById('ageRating').value = '';
     }
     
-    // Handle form submission
+    // Обработка отправки формы
     document.getElementById('productForm').addEventListener('submit', function(e) {
         e.preventDefault();
         
@@ -2086,22 +2260,22 @@
             dimensions: document.getElementById('dimensions').value
         };
         
-        // Get product attributes
+        // Получить атрибуты товара
         const attributes = getProductAttributes();
         
         let url, method;
         
         if (productId) {
-            // Update existing product
+            // Обновить существующий товар
             url = `/api/admin/products/${productId}/`;
             method = 'PUT';
         } else {
-            // Create new product
+            // Создать новый товар
             url = '/api/admin/products/create/';
             method = 'POST';
         }
         
-        // Send product data first
+        // Сначала отправить данные товара
         fetch(url, {
             method: method,
             headers: {
@@ -2186,7 +2360,7 @@
         }
     }
     
-    // Save product attributes
+    // Сохранение атрибутов товара
     async function saveProductAttributes(productId, attributes) {
         const existingAttributesResponse = await fetch(`/api/admin/products/${productId}/attributes/`, {
             headers: { 'Authorization': `Token ${authToken}` }
@@ -2223,7 +2397,7 @@
         }
     }
     
-    // Close modal when clicking outside
+    // Закрыть модальное окно при клике снаружи
     window.onclick = function(event) {
         const modal = document.getElementById('productModal');
         if (event.target == modal) {
@@ -2231,7 +2405,7 @@
         }
     };
     
-    // Add attribute row function
+    // Функция добавления строки атрибута
     function addAttributeRow() {
         const container = document.getElementById('attributesContainer');
         const row = document.createElement('div');
@@ -2254,13 +2428,13 @@
         container.appendChild(row);
     }
     
-    // Remove attribute row function
+    // Функция удаления строки атрибута
     function removeAttributeRow(button) {
         const row = button.closest('.attribute-row');
         row.remove();
     }
     
-    // Get attributes from form
+    // Получить атрибуты из формы
     function getProductAttributes() {
         const attributeRows = document.querySelectorAll('.attribute-row');
         const attributes = [];
@@ -2282,35 +2456,35 @@
         return attributes;
     }
     
-    // Clear attributes container except first row
+    // Очистить контейнер атрибутов, кроме первой строки
     function clearAttributes() {
         const container = document.getElementById('attributesContainer');
         const rows = container.querySelectorAll('.attribute-row');
-        // Keep only the first row
+        // Оставить только первую строку
         for (let i = 1; i < rows.length; i++) {
             rows[i].remove();
         }
-        // Clear the first row inputs
+        // Очистить поля первой строки
         const firstRow = rows[0];
         firstRow.querySelector('.attribute-name').value = '';
         firstRow.querySelector('.attribute-value').value = '';
         firstRow.querySelector('.attribute-unit').value = '';
     }
     
-    // Load product attributes into form
+    // Загрузка атрибутов товара в форму
     function loadProductAttributes(attributes) {
         console.log('Loading attributes:', attributes);
         const container = document.getElementById('attributesContainer');
         
-        // Clear existing attributes except the first empty row
+        // Очистить существующие атрибуты, кроме первой пустой строки
         clearAttributes();
         
-        // Add rows for each attribute
+        // Добавить строки для каждого атрибута
         if (attributes && attributes.length > 0) {
             attributes.forEach((attr, index) => {
                 console.log(`Processing attribute ${index}:`, attr);
                 if (index === 0) {
-                    // Use the first row
+                    // Использовать первую строку
                     const firstRow = container.querySelector('.attribute-row');
                     if (firstRow) {
                         const nameInput = firstRow.querySelector('.attribute-name');
@@ -2327,7 +2501,7 @@
                         }
                     }
                 } else {
-                    // Add new rows
+                    // Добавить новые строки
                     addAttributeRow();
                     const rows = container.querySelectorAll('.attribute-row');
                     const newRow = rows[rows.length - 1];
@@ -2350,7 +2524,7 @@
         }
     }
     
-    // Delete product function
+    // Функция удаления товара
     function deleteProduct(productId) {
         if (confirm('Вы уверены, что хотите удалить этот продукт?')) {
             fetch(`/api/admin/products/${productId}/`, {
@@ -2362,12 +2536,12 @@
             .then(response => {
                 console.log('Delete response status:', response.status);
                 if (!response.ok) {
-                    // For DELETE requests, 204 No Content is success
+                    // Для DELETE-запросов 204 No Content означает успех
                     if (response.status !== 204) {
                         throw new Error(`HTTP error! status: ${response.status}`);
                     }
                 }
-                // Don't try to parse JSON for 204 responses
+                // Не пытаться парсить JSON для ответа 204
                 if (response.status === 204) {
                     return { success: true };
                 }
@@ -2380,7 +2554,7 @@
             })
             .catch(error => {
                 console.error('Error deleting product:', error);
-                // Still reload the data in case the delete actually worked
+                // Всё равно перезагрузить данные на случай успешного удаления
                 loadProductsData();
                 alert('Продукт был удален (возможно была ошибка при подтверждении)');
             });
@@ -2567,11 +2741,11 @@
         loadCategoriesAndBrands();
     }
     
-    // User CRUD Functions
+    // Функции CRUD пользователей
     
-    // Load roles for dropdown
+    // Загрузка ролей для выпадающего списка
     function loadRoles() {
-        // Load roles from API
+        // Загрузка ролей из API
         fetch('/api/admin/roles/', {
             headers: {
                 'Authorization': `Token ${authToken}`
@@ -2587,7 +2761,7 @@
             const roleSelect = document.getElementById('userRoleId');
             roleSelect.innerHTML = '<option value="">Выберите роль</option>';
             
-            // Sort roles by ID for consistent display
+            // Сортировать роли по ID для единообразного отображения
             roles.sort((a, b) => a.roleId - b.roleId);
             
             roles.forEach(role => {
@@ -2599,7 +2773,7 @@
         })
         .catch(error => {
             console.error('Error loading roles:', error);
-            // Fallback to default roles if API fails
+            // Резервные роли по умолчанию при сбое API
             const roleSelect = document.getElementById('userRoleId');
             roleSelect.innerHTML = '<option value="">Выберите роль</option>';
             const defaultRoles = [
@@ -2617,7 +2791,7 @@
         });
     }
     
-    // Open user modal for creation/editing
+    // Открыть модальное окно пользователя для создания/редактирования
     function openUserModal(userId = null) {
         loadRoles();
         
@@ -2626,11 +2800,11 @@
         const title = document.getElementById('userModalTitle');
         
         if (userId) {
-            // Edit mode
+            // Режим редактирования
             title.textContent = 'Редактировать пользователя';
             document.getElementById('userId').value = userId;
             
-            // Load user data
+            // Загрузка данных пользователя
             fetch(`/api/admin/users/${userId}/`, {
                 headers: {
                     'Authorization': `Token ${authToken}`
@@ -2645,7 +2819,7 @@
                 document.getElementById('userPhone').value = user.phone;
                 document.getElementById('userBirthDate').value = user.birthDate;
                 document.getElementById('userRoleId').value = user.roleId;
-                // Clear password field for security
+                // Очистить поле пароля для безопасности
                 document.getElementById('userPassword').value = '';
             })
             .catch(error => {
@@ -2653,7 +2827,7 @@
                 alert('Ошибка при загрузке данных пользователя');
             });
         } else {
-            // Create mode
+            // Режим создания
             title.textContent = 'Добавить пользователя';
             document.getElementById('userId').value = '';
             form.reset();
@@ -2662,19 +2836,19 @@
         modal.style.display = 'block';
     }
     
-    // Initialize
+    // Инициализация
     document.addEventListener('DOMContentLoaded', function() {
-        // The initialization is handled by the verification code above
+        // Инициализация выполняется кодом проверки выше
     });
     
-    // Close user modal
+    // Закрыть модальное окно пользователя
     function closeUserModal() {
         document.getElementById('userModal').style.display = 'none';
         document.getElementById('userForm').reset();
         document.getElementById('userId').value = '';
     }
     
-    // Handle user form submission
+    // Обработка отправки формы пользователя
     document.getElementById('userForm').addEventListener('submit', function(e) {
         e.preventDefault();
         
@@ -2687,10 +2861,10 @@
             phone: document.getElementById('userPhone').value,
             birthDate: document.getElementById('userBirthDate').value,
             roleId: parseInt(document.getElementById('userRoleId').value),
-            username: document.getElementById('userEmail').value // Use email as username
+            username: document.getElementById('userEmail').value // Использовать email как имя пользователя
         };
         
-        // Only include password if it's not empty
+        // Включать пароль только если он не пустой
         const password = document.getElementById('userPassword').value;
         if (password) {
             formData.password = password;
@@ -2699,11 +2873,11 @@
         let url, method;
         
         if (userId) {
-            // Update existing user
+            // Обновить существующего пользователя
             url = `/api/admin/users/${userId}/`;
             method = 'PUT';
         } else {
-            // Create new user
+            // Создать нового пользователя
             url = '/api/admin/users/create/';
             method = 'POST';
         }
@@ -2773,7 +2947,7 @@
         .catch(err => { alert(err.message || 'Ошибка'); loadUsersData(); });
     }
     
-    // Close modal when clicking outside
+    // Закрыть модальное окно при клике снаружи
     window.onclick = function(event) {
         const productModal = document.getElementById('productModal');
         const userModal = document.getElementById('userModal');
@@ -2785,7 +2959,139 @@
         if (event.target == categoryModal) closeCategoryModal();
         if (event.target == brandModal) closeBrandModal();
         if (event.target == orderModal) closeOrderModal();
+        const auditLogModal = document.getElementById('auditLogModal');
+        if (event.target == auditLogModal) closeAuditLogModal();
     };
+    
+    // =============================================
+    // РЕЗЕРВНОЕ КОПИРОВАНИЕ
+    // =============================================
+    
+    function loadBackupsList() {
+        fetch('/api/admin/backups/', {
+            headers: { 'Authorization': `Token ${authToken}` }
+        })
+        .then(r => { if (!r.ok) throw new Error(); return r.json(); })
+        .then(data => {
+            const maxEl = document.getElementById('backupMaxCount');
+            if (maxEl) maxEl.textContent = data.max_count || 10;
+            
+            const tbody = document.getElementById('backupsTableBody');
+            if (!data.backups || data.backups.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="5" style="text-align: center;">Нет резервных копий</td></tr>';
+                return;
+            }
+            tbody.innerHTML = data.backups.map(b => {
+                const date = new Date(b.createdAt).toLocaleString('ru-RU');
+                const fmtLabel = b.format === 'custom' ? 'Custom' : 'SQL';
+                return `
+                    <tr>
+                        <td><code>${escapeHtml(b.filename)}</code></td>
+                        <td>${fmtLabel}</td>
+                        <td>${escapeHtml(b.sizeHuman)}</td>
+                        <td>${date}</td>
+                        <td>
+                            <button class="btn-admin" style="padding: 4px 10px; font-size: 0.85rem; margin-right: 4px;" onclick="downloadBackup('${escapeHtml(b.filename)}')">Скачать</button>
+                            <button class="btn-admin" style="padding: 4px 10px; font-size: 0.85rem; margin-right: 4px; background: #f59e0b;" onclick="restoreBackup('${escapeHtml(b.filename)}')">Восстановить</button>
+                            <button class="btn-admin" style="padding: 4px 10px; font-size: 0.85rem; background: #ef4444;" onclick="deleteBackup('${escapeHtml(b.filename)}')">Удалить</button>
+                        </td>
+                    </tr>
+                `;
+            }).join('');
+        })
+        .catch(() => {
+            document.getElementById('backupsTableBody').innerHTML = '<tr><td colspan="5" style="text-align: center; color: red;">Ошибка загрузки</td></tr>';
+        });
+    }
+    
+    function createBackup() {
+        const btn = document.getElementById('createBackupBtn');
+        const resultDiv = document.getElementById('backupCreateResult');
+        const fmt = document.getElementById('backupFormat').value;
+        const dataOnly = document.getElementById('backupDataOnly').checked;
+        
+        btn.disabled = true;
+        btn.textContent = 'Создание...';
+        resultDiv.style.display = 'none';
+        
+        fetch('/api/admin/backups/', {
+            method: 'POST',
+            headers: {
+                'Authorization': `Token ${authToken}`,
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ format: fmt, dataOnly: dataOnly })
+        })
+        .then(r => r.json().then(body => ({ status: r.status, body })))
+        .then(({ status, body }) => {
+            resultDiv.style.display = 'block';
+            if (status === 201) {
+                resultDiv.style.background = '#d1fae5';
+                resultDiv.style.border = '1px solid #10b981';
+                resultDiv.innerHTML = `<strong>Успешно!</strong> ${escapeHtml(body.detail)}`;
+                loadBackupsList();
+            } else {
+                resultDiv.style.background = '#fee2e2';
+                resultDiv.style.border = '1px solid #ef4444';
+                resultDiv.innerHTML = `<strong>Ошибка:</strong> ${escapeHtml(body.detail)}`;
+            }
+        })
+        .catch(() => {
+            resultDiv.style.display = 'block';
+            resultDiv.style.background = '#fee2e2';
+            resultDiv.style.border = '1px solid #ef4444';
+            resultDiv.innerHTML = '<strong>Ошибка:</strong> Не удалось создать бэкап.';
+        })
+        .finally(() => {
+            btn.disabled = false;
+            btn.textContent = 'Создать бэкап';
+        });
+    }
+    
+    function downloadBackup(filename) {
+        window.open(`/api/admin/backups/download/${filename}/?token=${authToken}`, '_blank');
+    }
+    
+    function restoreBackup(filename) {
+        if (!confirm(`ВНИМАНИЕ! Все текущие данные в базе будут заменены данными из бэкапа «${filename}».\n\nПродолжить?`)) return;
+        if (!confirm('Вы уверены? Это действие нельзя отменить.')) return;
+        
+        fetch('/api/admin/backups/restore/', {
+            method: 'POST',
+            headers: {
+                'Authorization': `Token ${authToken}`,
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ filename: filename })
+        })
+        .then(r => r.json().then(body => ({ status: r.status, body })))
+        .then(({ status, body }) => {
+            if (status === 200) {
+                alert('База данных восстановлена! Страница будет перезагружена.');
+                window.location.reload();
+            } else {
+                alert('Ошибка: ' + (body.detail || 'Не удалось восстановить.'));
+            }
+        })
+        .catch(() => alert('Ошибка сети при восстановлении.'));
+    }
+    
+    function deleteBackup(filename) {
+        if (!confirm(`Удалить бэкап «${filename}»?`)) return;
+        
+        fetch(`/api/admin/backups/delete/${filename}/`, {
+            method: 'DELETE',
+            headers: { 'Authorization': `Token ${authToken}` }
+        })
+        .then(r => {
+            if (r.ok) {
+                loadBackupsList();
+            } else {
+                r.json().then(body => alert('Ошибка: ' + (body.detail || 'Не удалось удалить.')));
+            }
+        })
+        .catch(() => alert('Ошибка сети.'));
+    }
     
     // =============================================
     // СИСТЕМА ГОРЯЧИХ КЛАВИШ
@@ -2804,7 +3110,8 @@
         '6': 'orders',
         '7': 'reviews',
         '8': 'logs',
-        '9': 'analytics'
+        '9': 'analytics',
+        '0': 'backups'
     };
     
     // Функции обновления данных для каждого раздела
@@ -2817,7 +3124,9 @@
         'orders': loadOrdersData,
         'reviews': loadReviewsData,
         'logs': loadAuditLogsData,
-        'analytics': loadAnalyticsData
+        'analytics': loadAnalyticsData,
+        'data-io': function(){},
+        'backups': loadBackupsList
     };
     
     // Функции создания нового элемента для каждого раздела
@@ -2965,7 +3274,7 @@
             navLink.classList.add('active');
         }
         
-        // Load data based on section
+        // Загрузить данные в зависимости от раздела
         if (refreshFunctions[sectionId]) {
             refreshFunctions[sectionId]();
         }
@@ -3652,5 +3961,116 @@
     document.addEventListener('DOMContentLoaded', function() {
         initAnalyticsDates();
     });
+    
+    // =============================================
+    // ИМПОРТ / ЭКСПОРТ ДАННЫХ
+    // =============================================
+    
+    function exportTableData() {
+        const table = document.getElementById('exportTable').value;
+        const format = document.getElementById('exportFormat').value;
+        const url = `/api/admin/data-export/?table=${table}&file_format=${format}`;
+        
+        console.log('Запрос на:', url);
+        console.log('Параметры:', { table, format });
+        console.log('Токен:', authToken ? 'Присутствует' : 'Отсутствует');
+        
+        fetch(url, {
+            method: 'GET',
+            headers: { 
+                'Authorization': `Token ${authToken}`,
+                'Accept': format === 'csv' ? 'text/csv' : 'application/sql'
+            }
+        })
+        .then(response => {
+            console.log('Статус ответа:', response.status);
+            console.log('URL ответа:', response.url);
+            
+            if (response.status === 404) {
+                throw new Error(`Ресурс не найден (404). Проверьте путь: ${url}`);
+            }
+            
+            if (!response.ok) {
+                return response.text().then(text => {
+                    console.error('Текст ошибки:', text);
+                    try {
+                        const data = JSON.parse(text);
+                        throw new Error(data.detail || data.message || `Ошибка ${response.status}`);
+                    } catch {
+                        throw new Error(`Ошибка ${response.status}: ${text}`);
+                    }
+                });
+            }
+            
+            const contentDisposition = response.headers.get('Content-Disposition') || '';
+            const filenameMatch = contentDisposition.match(/filename="?([^";\n]+)"?/);
+            const filename = filenameMatch ? filenameMatch[1] : `${table}_export.${format === 'sql' ? 'sql' : 'csv'}`;
+            
+            return response.blob().then(blob => ({ blob, filename }));
+        })
+        .then(({ blob, filename }) => {
+            console.log('Файл для скачивания:', filename, 'Размер:', blob.size);
+            
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = filename;
+            document.body.appendChild(a);
+            a.click();
+            window.URL.revokeObjectURL(url);
+            a.remove();
+            alert('Экспорт успешно завершен!');
+        })
+        .catch(err => {
+            console.error('Полная ошибка:', err);
+            alert(`Ошибка при экспорте: ${err.message}`);
+        });
+    }
+    
+    function importCsvData() {
+        const table = document.getElementById('importTable').value;
+        const fileInput = document.getElementById('importFile');
+        const resultDiv = document.getElementById('importResult');
+        
+        if (!fileInput.files || !fileInput.files[0]) {
+            alert('Выберите CSV-файл для импорта.');
+            return;
+        }
+        
+        const formData = new FormData();
+        formData.append('file', fileInput.files[0]);
+        formData.append('table', table);
+        
+        resultDiv.style.display = 'none';
+        
+        fetch('/api/admin/data-import/', {
+            method: 'POST',
+            headers: { 'Authorization': `Token ${authToken}` },
+            body: formData
+        })
+        .then(r => r.json().then(body => ({ ok: r.ok, body })))
+        .then(({ ok, body }) => {
+            resultDiv.style.display = 'block';
+            if (ok) {
+                resultDiv.style.background = '#d1fae5';
+                resultDiv.style.color = '#065f46';
+                resultDiv.style.border = '1px solid #10b981';
+                resultDiv.innerHTML = `<strong>Импорт завершён.</strong> ${escapeHtml(body.detail || '')}`;
+                fileInput.value = '';
+            } else {
+                resultDiv.style.background = '#fee2e2';
+                resultDiv.style.color = '#991b1b';
+                resultDiv.style.border = '1px solid #ef4444';
+                resultDiv.innerHTML = `<strong>Ошибка:</strong> ${escapeHtml(body.detail || 'Неизвестная ошибка')}`;
+            }
+        })
+        .catch(() => {
+            resultDiv.style.display = 'block';
+            resultDiv.style.background = '#fee2e2';
+            resultDiv.style.color = '#991b1b';
+            resultDiv.style.border = '1px solid #ef4444';
+            resultDiv.innerHTML = '<strong>Ошибка:</strong> Не удалось выполнить импорт.';
+        });
+    }
 </script>
 {% endblock %}

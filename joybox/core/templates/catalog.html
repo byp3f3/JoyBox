@@ -496,18 +496,18 @@
                 }
             });
             
-            // Add search parameter
+            // Добавить параметр поиска
             if (currentSearch) {
                 queryParams.append('search', currentSearch);
             }
             
-            // Add sorting parameter
+            // Добавить параметр сортировки
             queryParams.append('ordering', sort);
             
             const response = await fetch(`/api/catalog/products/?${queryParams}`);
             const products = await response.json();
             
-            // Update results count
+            // Обновить счётчик результатов
             const resultsCount = document.getElementById('resultsCount');
             if (products.count !== undefined) {
                 resultsCount.textContent = `Найдено товаров: ${products.count}`;
@@ -575,7 +575,7 @@
         }).join('');
     }
     
-    // Render star rating with half stars support
+    // Отрисовка рейтинга звёздами с поддержкой половинок
     function renderStars(rating) {
         if (!rating) return '<i class="far fa-star"></i>'.repeat(5);
         
@@ -583,17 +583,17 @@
         const hasHalfStar = rating % 1 >= 0.5;
         let starsHtml = '';
         
-        // Full stars
+        // Полные звёзды
         for (let i = 0; i < fullStars; i++) {
             starsHtml += '<i class="fas fa-star"></i>';
         }
         
-        // Half star
+        // Полу-звезда
         if (hasHalfStar) {
             starsHtml += '<i class="fas fa-star-half-alt"></i>';
         }
         
-        // Empty stars
+        // Пустые звёзды
         const emptyStars = 5 - fullStars - (hasHalfStar ? 1 : 0);
         for (let i = 0; i < emptyStars; i++) {
             starsHtml += '<i class="far fa-star"></i>';
@@ -645,7 +645,7 @@
         loadFilters();
         loadProducts({}, currentSort);
         
-        // Add enter key support for search
+        // Поддержка клавиши Enter для поиска
         document.getElementById('searchInput').addEventListener('keypress', function(e) {
             if (e.key === 'Enter') {
                 performSearch();
